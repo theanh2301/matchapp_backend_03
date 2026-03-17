@@ -1,0 +1,38 @@
+package com.company.mathapp_backend_03.entity;
+
+import jakarta.persistence.*;
+import lombok.*;
+import lombok.experimental.FieldDefaults;
+
+import java.time.LocalDate;
+
+@Builder
+@AllArgsConstructor
+@NoArgsConstructor
+@Getter
+@Setter
+@FieldDefaults(level = AccessLevel.PRIVATE)
+@Entity
+@Table(name = "user_answer")
+public class UserAnswer {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    Integer id;
+
+    Boolean isCorrect;
+    LocalDate AnsweredAt;
+    Integer totalXP;
+
+    @ManyToOne
+    @JoinColumn(name = "user_id")
+    User user;
+
+    @ManyToOne
+    @JoinColumn(name = "question_id")
+    Question question;
+
+    @ManyToOne
+    @JoinColumn(name = "answer_id")
+    Answer answer;
+
+}
