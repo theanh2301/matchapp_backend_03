@@ -13,4 +13,6 @@ public interface LessonRepository extends JpaRepository<Lesson, Integer> {
     List<Lesson> findByChapterId(Integer chapterId);
 
     Optional<Lesson> findByLessonNameAndChapter(String lessonName, Chapter chapter);
+
+    boolean existsByLessonNameAndChapterAndIdNot(String lessonName, Chapter chapter, Integer id);
 }
