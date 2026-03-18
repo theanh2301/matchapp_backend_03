@@ -13,8 +13,20 @@ public class GlobalExceptionHandler {
     public ResponseEntity<?> handleBadRequest(BadRequestException ex) {
         return ResponseEntity
                 .badRequest()
-                .body(Map.of(
-                        "message", ex.getMessage()
-                ));
+                .body(Map.of("message", ex.getMessage()));
+    }
+
+    @ExceptionHandler(NotFoundException.class)
+    public ResponseEntity<?> handleNotFound(NotFoundException ex) {
+        return ResponseEntity
+                .status(404)
+                .body(Map.of("message", ex.getMessage()));
+    }
+
+    @ExceptionHandler(ConflictException.class)
+    public ResponseEntity<?> handleConflict(ConflictException ex) {
+        return ResponseEntity
+                .status(409)
+                .body(Map.of("message", ex.getMessage()));
     }
 }

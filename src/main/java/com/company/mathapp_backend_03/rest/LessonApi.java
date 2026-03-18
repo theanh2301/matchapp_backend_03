@@ -1,6 +1,4 @@
 package com.company.mathapp_backend_03.rest;
-
-import com.company.mathapp_backend_03.entity.Lesson;
 import com.company.mathapp_backend_03.model.request.LessonRequest;
 import com.company.mathapp_backend_03.model.response.LessonResponse;
 import com.company.mathapp_backend_03.service.ChapterService;

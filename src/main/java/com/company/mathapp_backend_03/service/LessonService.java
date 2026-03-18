@@ -3,13 +3,17 @@ package com.company.mathapp_backend_03.service;
 import com.company.mathapp_backend_03.entity.Chapter;
 import com.company.mathapp_backend_03.entity.Lesson;
 import com.company.mathapp_backend_03.exception.BadRequestException;
+import com.company.mathapp_backend_03.exception.ConflictException;
+import com.company.mathapp_backend_03.exception.NotFoundException;
 import com.company.mathapp_backend_03.model.request.LessonRequest;
 import com.company.mathapp_backend_03.model.response.LessonResponse;
 import com.company.mathapp_backend_03.repository.*;
 import lombok.RequiredArgsConstructor;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 
 @Service
@@ -56,38 +60,45 @@ public class LessonService {
     public void updateLesson(Integer id, LessonRequest lessonRequest) {
 
         Chapter chapter = chapterRepository.findById(lessonRequest.getChapterId())
-                .orElseThrow(() -> new BadRequestException("Chapter not found"));
+                .orElseThrow(() -> new NotFoundException("Chapter not found"));
 
         Lesson lesson = lessonRepository.findById(id)
-                .orElseThrow(() -> new BadRequestException("Lesson not found"));
+                .orElseThrow(() -> new NotFoundException("Lesson not found"));
 
-        Optional<Lesson> existingLesson = lessonRepository.findByLessonNameAndChapter(
-                lessonRequest.getLessonName(),
-                chapter
-        );
+        if (lessonRepository.existsByLessonNameAndChapterAndIdNot(
+                lessonRequest.getLessonName(), chapter, id)) {
+            throw new ConflictException("Lesson already exists in this chapter");
+        }
 
-        if (existingLesson.isPresent()) {
-            throw new BadRequestException("Lesson already exists in this chapter");
+        if (lesson.getLessonName().equals(lessonRequest.getLessonName())
+                && Objects.equals(lesson.getDescription(), lessonRequest.getDescription())
+                && lesson.getChapter().getId().equals(chapter.getId())) {
+            throw new BadRequestException("No changes detected");
         }
 
         lesson.setLessonName(lessonRequest.getLessonName());
         lesson.setDescription(lessonRequest.getDescription());
+        lesson.setChapter(chapter);
 
         lessonRepository.save(lesson);
     }
 
     public void deleteLesson(Integer id) {
 
-        Lesson lesson = lessonRepository.findById(id)
-                .orElseThrow(() -> new BadRequestException("Lesson not found"));
-
-        if (flashcardRepository.existsByLessonId(id)
-            || matchGameRepository.existsByLessonId(id)
-            || questionRepository.existsByLessonId(id)
-        ) {
-            throw new BadRequestException("Cannot delete lesson because it contains question");
+        if (!lessonRepository.existsById(id)) {
+            throw new NotFoundException("Lesson not found");
         }
 
-        lessonRepository.delete(lesson);
+        if (flashcardRepository.existsByLessonId(id)
+                || matchGameRepository.existsByLessonId(id)
+                || questionRepository.existsByLessonId(id)) {
+            throw new ConflictException("Cannot delete lesson because it contains related data");
+        }
+
+        try {
+            lessonRepository.deleteById(id);
+        } catch (DataIntegrityViolationException ex) {
+            throw new ConflictException("Cannot delete lesson due to data constraints");
+        }
     }
 }

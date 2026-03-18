@@ -17,7 +17,7 @@ public class Question {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     Integer id;
-    String context;
+    String content;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "type_question")
