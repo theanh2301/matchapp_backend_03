@@ -30,7 +30,7 @@ public class FlashcardApi {
 
     @PutMapping("/{id}")
     public ResponseEntity<?> updateFlashcard(@PathVariable Integer id,
-                                             @RequestBody FlashcardRequest flashcardRequest) {
+                                            @Valid @RequestBody FlashcardRequest flashcardRequest) {
         flashcardService.updateFlashcard(id, flashcardRequest);
 
         return ResponseEntity.ok("Flashcard updated successfully");

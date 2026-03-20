@@ -4,6 +4,7 @@ import com.company.mathapp_backend_03.model.request.QuestionRequest;
 import com.company.mathapp_backend_03.model.response.QuestionResponse;
 import com.company.mathapp_backend_03.service.LessonService;
 import com.company.mathapp_backend_03.service.QuestionService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -44,14 +45,14 @@ public class QuestionApi {
     }
 
     @PostMapping("/answers")
-    public ResponseEntity<?> addQuestionAndAnswer(@RequestBody QuestionRequest questionRequest) {
+    public ResponseEntity<?> addQuestionAndAnswer(@Valid @RequestBody QuestionRequest questionRequest) {
         questionService.addQuestionAndAnswer(questionRequest);
         return ResponseEntity.ok("Question and answer created successfully");
     }
 
     @PutMapping("/{id}/answers")
     public ResponseEntity<?> updateQuestionAndQuestion(@PathVariable Integer id,
-                                            @RequestBody QuestionRequest questionRequest) {
+                                           @Valid @RequestBody QuestionRequest questionRequest) {
         questionService.updateQuestionAndAnswer(id, questionRequest);
 
         return ResponseEntity.ok("Question and answer updated successfully");

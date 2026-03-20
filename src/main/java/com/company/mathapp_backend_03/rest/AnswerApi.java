@@ -3,6 +3,7 @@ package com.company.mathapp_backend_03.rest;
 import com.company.mathapp_backend_03.model.request.ListAnswerRequest;
 import com.company.mathapp_backend_03.model.response.AnswerResponse;
 import com.company.mathapp_backend_03.service.AnswerService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -21,7 +22,7 @@ public class AnswerApi {
     }
 
     @PostMapping("/{questionId}/answers")
-    public ResponseEntity<?> addAnswers(@PathVariable Integer questionId, @RequestBody ListAnswerRequest request) {
+    public ResponseEntity<?> addAnswers(@PathVariable Integer questionId, @Valid @RequestBody ListAnswerRequest request) {
 
         request.setQuestionId(questionId);
         answerService.addAnswers(request);
@@ -30,7 +31,7 @@ public class AnswerApi {
     }
 
     @PutMapping("/{questionId}/answers")
-    public ResponseEntity<?> updateAnswers(@PathVariable Integer questionId, @RequestBody ListAnswerRequest request) {
+    public ResponseEntity<?> updateAnswers(@PathVariable Integer questionId, @Valid @RequestBody ListAnswerRequest request) {
 
         request.setQuestionId(questionId);
         answerService.updateAnswers(request);

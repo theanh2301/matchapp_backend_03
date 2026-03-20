@@ -3,6 +3,7 @@ package com.company.mathapp_backend_03.rest;
 import com.company.mathapp_backend_03.model.request.ChapterRequest;
 import com.company.mathapp_backend_03.model.response.ChapterResponse;
 import com.company.mathapp_backend_03.service.ChapterService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -22,14 +23,14 @@ public class ChapterApi {
     }
 
     @PostMapping
-    public ResponseEntity<?> addChapter(@RequestBody ChapterRequest chapterRequest) {
+    public ResponseEntity<?> addChapter(@Valid @RequestBody ChapterRequest chapterRequest) {
         chapterService.addChapter(chapterRequest);
         return ResponseEntity.ok("Chapter created successfully");
     }
 
     @PutMapping("/{id}")
     public ResponseEntity<?> updateChapter(@PathVariable Integer id,
-                                           @RequestBody ChapterRequest chapterRequest) {
+                                          @Valid @RequestBody ChapterRequest chapterRequest) {
 
         chapterService.updateChapter(id, chapterRequest);
 

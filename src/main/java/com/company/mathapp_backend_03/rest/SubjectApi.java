@@ -3,6 +3,7 @@ package com.company.mathapp_backend_03.rest;
 import com.company.mathapp_backend_03.model.request.SubjectRequest;
 import com.company.mathapp_backend_03.model.response.SubjectResponse;
 import com.company.mathapp_backend_03.service.SubjectService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -23,14 +24,14 @@ public class SubjectApi {
     }
 
     @PostMapping
-    public ResponseEntity<?> addSubject(@RequestBody SubjectRequest request) {
+    public ResponseEntity<?> addSubject(@Valid @RequestBody SubjectRequest request) {
         subjectService.addSubject(request);
         return ResponseEntity.ok("Subject created successfully");
     }
 
     @PutMapping("/{id}")
     public ResponseEntity<?> updateSubject(@PathVariable Integer id,
-                                           @RequestBody SubjectRequest subjectRequest) {
+                                          @Valid @RequestBody SubjectRequest subjectRequest) {
 
         subjectService.updateSubject(id, subjectRequest);
 

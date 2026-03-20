@@ -3,6 +3,7 @@ import com.company.mathapp_backend_03.model.request.LessonRequest;
 import com.company.mathapp_backend_03.model.response.LessonResponse;
 import com.company.mathapp_backend_03.service.ChapterService;
 import com.company.mathapp_backend_03.service.LessonService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -22,14 +23,14 @@ public class LessonApi {
     }
 
     @PostMapping
-    public ResponseEntity<?> addLesson(@RequestBody LessonRequest lessonRequest) {
+    public ResponseEntity<?> addLesson(@Valid @RequestBody LessonRequest lessonRequest) {
         lessonService.addLesson(lessonRequest);
         return ResponseEntity.ok("Lesson created successfully");
     }
 
     @PutMapping("/{id}")
     public ResponseEntity<?> updateLesson(@PathVariable Integer id,
-                                          @RequestBody LessonRequest lessonRequest) {
+                                         @Valid @RequestBody LessonRequest lessonRequest) {
 
         lessonService.updateLesson(id, lessonRequest);
 
