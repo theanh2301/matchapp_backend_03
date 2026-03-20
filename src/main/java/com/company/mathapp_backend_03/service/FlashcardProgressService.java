@@ -24,17 +24,17 @@ public class FlashcardProgressService {
     private final FlashcardRepository flashcardRepository;
     private final UserRepository userRepository;
 
-    public List<FlashcardProgressResponse> getFlashcardProgressByFlashcardIdAndUserId(Integer flashcardId, Integer userId) {
+    public List<FlashcardProgressResponse> getFlashcardProgress(Integer flashcardId, Integer userId) {
         List<FlashcardProgress> flashcardProgresses = flashcardProgressRepository
                 .findByFlashcardIdAndUserId(flashcardId, userId);
 
         return flashcardProgresses.stream().map(flashcardProgress ->
                 new FlashcardProgressResponse(
-                flashcardProgress.getId(),
-                flashcardProgress.getIsKnown(),
-                flashcardProgress.getLastReviewed(),
-                flashcardProgress.getTotalXP()
-        )).toList();
+                    flashcardProgress.getId(),
+                    flashcardProgress.getIsKnown(),
+                    flashcardProgress.getLastReviewed(),
+                    flashcardProgress.getTotalXP()
+                )).toList();
     }
 
     @Transactional
