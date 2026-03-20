@@ -1,7 +1,7 @@
 package com.company.mathapp_backend_03.rest;
+
 import com.company.mathapp_backend_03.model.request.LessonRequest;
 import com.company.mathapp_backend_03.model.response.LessonResponse;
-import com.company.mathapp_backend_03.service.ChapterService;
 import com.company.mathapp_backend_03.service.LessonService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -15,7 +15,6 @@ import java.util.List;
 @RequiredArgsConstructor
 public class LessonApi {
     private final LessonService lessonService;
-    private final ChapterService chapterService;
 
     @GetMapping("/{chapterId}")
     public List<LessonResponse> getLessons(@PathVariable Integer chapterId) {

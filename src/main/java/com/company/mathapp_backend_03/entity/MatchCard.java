@@ -12,7 +12,7 @@ import lombok.experimental.FieldDefaults;
 @FieldDefaults(level = AccessLevel.PRIVATE)
 @Entity
 @Table(name = "match_game")
-public class MatchGame {
+public class MatchCard {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

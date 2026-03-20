@@ -21,11 +21,11 @@ public class RegisterRequest {
     String fullName;
     @NotBlank(message = "Phone number is required")
     @Pattern(regexp = "^[0-9]{10}$", message = "Phone number must be exactly 10 digits")
-    private String phone;
+    String phone;
     @NotNull(message = "Date of birth is required")
     @Past(message = "Date of birth must be in the past")
     @JsonFormat(pattern = "yyyy-MM-dd")
-    private LocalDate dateOfBirth;
+    LocalDate dateOfBirth;
     LocalDate dob;
     @NotBlank(message = "password cannot be empty")
     String password;

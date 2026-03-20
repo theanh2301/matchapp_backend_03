@@ -22,7 +22,7 @@ public class LessonService {
     private final LessonRepository lessonRepository;
     private final ChapterRepository chapterRepository;
     private final FlashcardRepository flashcardRepository;
-    private final MatchGameRepository matchGameRepository;
+    private final MatchCardRepository matchCardRepository;
     private final QuestionRepository questionRepository;
 
     public List<LessonResponse> getLessonsByChapterId(Integer id) {
@@ -71,7 +71,7 @@ public class LessonService {
         }
 
         if (lesson.getLessonName().equals(lessonRequest.getLessonName())
-                && Objects.equals(lesson.getDescription(), lessonRequest.getDescription())
+                && lesson.getDescription().equals(lessonRequest.getDescription())
                 && lesson.getChapter().getId().equals(chapter.getId())) {
             throw new BadRequestException("No changes detected");
         }
@@ -90,7 +90,7 @@ public class LessonService {
         }
 
         if (flashcardRepository.existsByLessonId(id)
-                || matchGameRepository.existsByLessonId(id)
+                || matchCardRepository.existsByLessonId(id)
                 || questionRepository.existsByLessonId(id)) {
             throw new ConflictException("Cannot delete lesson because it contains related data");
         }

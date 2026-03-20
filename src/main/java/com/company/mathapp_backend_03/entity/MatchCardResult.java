@@ -12,7 +12,7 @@ import lombok.experimental.FieldDefaults;
 @FieldDefaults(level = AccessLevel.PRIVATE)
 @Entity
 @Table(name = "match_game_result")
-public class MatchGameResult {
+public class MatchCardResult {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -24,7 +24,7 @@ public class MatchGameResult {
 
     @ManyToOne
     @JoinColumn(name = "match_game_id")
-    MatchGame matchGame;
+    MatchCard matchCard;
 
     @ManyToOne
     @JoinColumn(name = "user _id")

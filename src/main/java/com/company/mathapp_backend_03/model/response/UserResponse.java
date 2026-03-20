@@ -16,7 +16,7 @@ public class UserResponse {
     LocalDate dob;
     String status;
     String email;
-    Integer phone;
+    String phone;
     String avatarUrl;
     Boolean isPremium;
     Role role;

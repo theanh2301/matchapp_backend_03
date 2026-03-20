@@ -23,7 +23,7 @@ public class User {
     LocalDate dob;
     String status;
     String email;
-    Integer phone;
+    String phone;
     String password;
     String avatarUrl;
     Boolean isPremium;
