@@ -42,4 +42,25 @@ public class QuestionApi {
 
         return ResponseEntity.ok("Question deleted successfully");
     }
+
+    @PostMapping("/answers")
+    public ResponseEntity<?> addQuestionAndAnswer(@RequestBody QuestionRequest questionRequest) {
+        questionService.addQuestionAndAnswer(questionRequest);
+        return ResponseEntity.ok("Question and answer created successfully");
+    }
+
+    @PutMapping("/{id}/answers")
+    public ResponseEntity<?> updateQuestionAndQuestion(@PathVariable Integer id,
+                                            @RequestBody QuestionRequest questionRequest) {
+        questionService.updateQuestionAndAnswer(id, questionRequest);
+
+        return ResponseEntity.ok("Question and answer updated successfully");
+    }
+
+    @DeleteMapping("/{id}/answers")
+    public ResponseEntity<?> deleteQuestionAndAnswer(@PathVariable Integer id) {
+        questionService.deleteQuestionAnswer(id);
+
+        return ResponseEntity.ok("Question and answer deleted successfully");
+    }
 }

@@ -1,13 +1,11 @@
 package com.company.mathapp_backend_03.model.response;
 
 import com.company.mathapp_backend_03.model.enums.TypeQuestion;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 
-@Setter
-@Getter
+import java.util.List;
+
+@Data
 @AllArgsConstructor
 @NoArgsConstructor
 public class QuestionResponse {
@@ -15,5 +13,5 @@ public class QuestionResponse {
     String content;
     TypeQuestion typeQuestion;
     Integer xpReward;
-
+    List<AnswerResponse> answers;
 }

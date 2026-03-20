@@ -59,6 +59,7 @@ public class ChapterService {
 
         chapterRepository.save(chapter);
     }
+
     public void updateChapter(Integer id, ChapterRequest chapterRequest) {
 
         Subject subject = subjectRepository.findById(chapterRequest.getSubjectId())

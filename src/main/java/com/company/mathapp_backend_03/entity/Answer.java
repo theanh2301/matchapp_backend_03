@@ -16,6 +16,8 @@ public class Answer {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     Integer id;
+
+    @NonNull
     String content;
     Boolean isCorrect;
 
