@@ -1,5 +1,6 @@
 package com.company.mathapp_backend_03.rest;
 
+import com.company.mathapp_backend_03.model.dto.SubjectOverviewDTO;
 import com.company.mathapp_backend_03.model.request.SubjectRequest;
 import com.company.mathapp_backend_03.model.response.SubjectResponse;
 import com.company.mathapp_backend_03.service.SubjectService;
@@ -21,6 +22,15 @@ public class SubjectApi {
     @GetMapping
     public List<SubjectResponse> getSubjects() {
         return subjectService.getAllSubjects();
+    }
+
+    @GetMapping("/overview")
+    public ResponseEntity<List<SubjectOverviewDTO>> getSubjectOverviews(
+            @RequestParam Integer userId) {
+
+        List<SubjectOverviewDTO> overviews = subjectService.getSubjectOverviews(userId);
+
+        return ResponseEntity.ok(overviews);
     }
 
     @PostMapping

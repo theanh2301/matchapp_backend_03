@@ -1,5 +1,6 @@
 package com.company.mathapp_backend_03.rest;
 
+import com.company.mathapp_backend_03.model.dto.LessonOverviewDTO;
 import com.company.mathapp_backend_03.model.request.LessonRequest;
 import com.company.mathapp_backend_03.model.response.LessonResponse;
 import com.company.mathapp_backend_03.service.LessonService;
@@ -15,6 +16,15 @@ import java.util.List;
 @RequiredArgsConstructor
 public class LessonApi {
     private final LessonService lessonService;
+
+    @GetMapping("/{chapterId}/lessons")
+    public ResponseEntity<List<LessonOverviewDTO>> getLessonsInChapter(
+            @PathVariable Integer chapterId,
+            @RequestParam Integer userId) {
+
+        List<LessonOverviewDTO> lessons = lessonService.getLessonOverviewsByChapter(chapterId, userId);
+        return ResponseEntity.ok(lessons);
+    }
 
     @GetMapping("/{chapterId}")
     public List<LessonResponse> getLessons(@PathVariable Integer chapterId) {

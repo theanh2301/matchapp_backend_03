@@ -2,11 +2,14 @@ package com.company.mathapp_backend_03.service;
 
 import com.company.mathapp_backend_03.entity.Chapter;
 import com.company.mathapp_backend_03.entity.Subject;
+import com.company.mathapp_backend_03.entity.User;
 import com.company.mathapp_backend_03.exception.BadRequestException;
+import com.company.mathapp_backend_03.model.dto.SubjectOverviewDTO;
 import com.company.mathapp_backend_03.model.request.SubjectRequest;
 import com.company.mathapp_backend_03.model.response.SubjectResponse;
 import com.company.mathapp_backend_03.repository.ChapterRepository;
 import com.company.mathapp_backend_03.repository.SubjectRepository;
+import com.company.mathapp_backend_03.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -19,6 +22,15 @@ public class SubjectService {
 
     private final SubjectRepository subjectRepository;
     private final ChapterRepository chapterRepository;
+    private final UserRepository userRepository;
+
+    public List<SubjectOverviewDTO> getSubjectOverviews(Integer userId) {
+
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new BadRequestException("User not found"));
+
+        return subjectRepository.getSubjectOverviews(user.getId());
+    }
 
     public List<SubjectResponse> getAllSubjects() {
 

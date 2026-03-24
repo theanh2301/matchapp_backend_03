@@ -5,6 +5,7 @@ import com.company.mathapp_backend_03.entity.Lesson;
 import com.company.mathapp_backend_03.exception.BadRequestException;
 import com.company.mathapp_backend_03.exception.ConflictException;
 import com.company.mathapp_backend_03.exception.NotFoundException;
+import com.company.mathapp_backend_03.model.dto.LessonOverviewDTO;
 import com.company.mathapp_backend_03.model.request.LessonRequest;
 import com.company.mathapp_backend_03.model.response.LessonResponse;
 import com.company.mathapp_backend_03.repository.*;
@@ -100,5 +101,9 @@ public class LessonService {
         } catch (DataIntegrityViolationException ex) {
             throw new ConflictException("Cannot delete lesson due to data constraints");
         }
+    }
+
+    public List<LessonOverviewDTO> getLessonOverviewsByChapter(Integer chapterId, Integer userId) {
+        return lessonRepository.getLessonOverviewsByChapter(chapterId, userId);
     }
 }

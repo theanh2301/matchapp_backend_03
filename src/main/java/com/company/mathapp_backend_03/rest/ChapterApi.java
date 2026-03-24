@@ -1,5 +1,6 @@
 package com.company.mathapp_backend_03.rest;
 
+import com.company.mathapp_backend_03.model.dto.ChapterOverviewDTO;
 import com.company.mathapp_backend_03.model.request.ChapterRequest;
 import com.company.mathapp_backend_03.model.response.ChapterResponse;
 import com.company.mathapp_backend_03.service.ChapterService;
@@ -15,6 +16,15 @@ import java.util.List;
 @RequiredArgsConstructor
 public class ChapterApi {
     private final ChapterService chapterService;
+
+    @GetMapping("/{subjectId}/chapters")
+    public ResponseEntity<List<ChapterOverviewDTO>> getChaptersInSubject(
+            @PathVariable Integer subjectId,
+            @RequestParam Integer userId) {
+
+        List<ChapterOverviewDTO> chapters = chapterService.getChaptersBySubject(subjectId, userId);
+        return ResponseEntity.ok(chapters);
+    }
 
     @GetMapping("/{subjectId}")
     public List<ChapterResponse> getChapters(@PathVariable Integer subjectId) {

@@ -11,7 +11,7 @@ import lombok.experimental.FieldDefaults;
 @Setter
 @FieldDefaults(level = AccessLevel.PRIVATE)
 @Entity
-@Table(name = "match_game")
+@Table(name = "match_card")
 public class MatchCard {
 
     @Id

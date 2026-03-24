@@ -6,6 +6,7 @@ import com.company.mathapp_backend_03.entity.Subject;
 import com.company.mathapp_backend_03.exception.BadRequestException;
 import com.company.mathapp_backend_03.exception.ConflictException;
 import com.company.mathapp_backend_03.exception.NotFoundException;
+import com.company.mathapp_backend_03.model.dto.ChapterOverviewDTO;
 import com.company.mathapp_backend_03.model.request.ChapterRequest;
 import com.company.mathapp_backend_03.model.request.SubjectRequest;
 import com.company.mathapp_backend_03.model.response.ChapterResponse;
@@ -101,5 +102,9 @@ public class ChapterService {
         } catch (DataIntegrityViolationException ex) {
             throw new ConflictException("Cannot delete chapter due to data constraints");
         }
+    }
+
+    public List<ChapterOverviewDTO> getChaptersBySubject(Integer subjectId, Integer userId) {
+        return chapterRepository.getChapterOverviewsBySubject(subjectId, userId);
     }
 }

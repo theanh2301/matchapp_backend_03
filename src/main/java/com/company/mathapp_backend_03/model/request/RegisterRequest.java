@@ -25,7 +25,6 @@ public class RegisterRequest {
     @NotNull(message = "Date of birth is required")
     @Past(message = "Date of birth must be in the past")
     @JsonFormat(pattern = "yyyy-MM-dd")
-    LocalDate dateOfBirth;
     LocalDate dob;
     @NotBlank(message = "password cannot be empty")
     String password;

@@ -11,7 +11,7 @@ import lombok.experimental.FieldDefaults;
 @Setter
 @FieldDefaults(level = AccessLevel.PRIVATE)
 @Entity
-@Table(name = "match_game_result")
+@Table(name = "match_card_result")
 public class MatchCardResult {
 
     @Id
@@ -23,11 +23,11 @@ public class MatchCardResult {
     Integer totalXP;
 
     @ManyToOne
-    @JoinColumn(name = "match_game_id")
+    @JoinColumn(name = "match_card_id")
     MatchCard matchCard;
 
     @ManyToOne
-    @JoinColumn(name = "user _id")
+    @JoinColumn(name = "user_id")
     User user;
 
 }
