@@ -15,6 +15,7 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.Objects;
 import java.util.Optional;
 
@@ -54,7 +55,7 @@ public class UserService {
                 .totalXP(0)
                 .totalLesson(0)
                 .streakDay(0)
-                .lastStudyDate(LocalDate.now())
+                .lastStudyDate(LocalDateTime.now())
                 .build();
 
         stat.setUser(user);

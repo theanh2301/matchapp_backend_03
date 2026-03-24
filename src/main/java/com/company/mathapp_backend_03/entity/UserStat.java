@@ -5,6 +5,7 @@ import lombok.*;
 import lombok.experimental.FieldDefaults;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 @Builder
 @AllArgsConstructor
@@ -26,5 +27,5 @@ public class UserStat {
     Integer totalXP;
     Integer totalLesson;
     Integer streakDay;
-    LocalDate lastStudyDate;
+    LocalDateTime lastStudyDate;
 }
