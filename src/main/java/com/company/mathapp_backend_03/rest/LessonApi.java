@@ -22,7 +22,7 @@ public class LessonApi {
             @PathVariable Integer chapterId,
             @RequestParam Integer userId) {
 
-        List<LessonOverviewDTO> lessons = lessonService.getLessonOverviewsByChapter(chapterId, userId);
+        List<LessonOverviewDTO> lessons  = lessonService.getLessonOverviewsByChapter(chapterId, userId);
         return ResponseEntity.ok(lessons);
     }
 

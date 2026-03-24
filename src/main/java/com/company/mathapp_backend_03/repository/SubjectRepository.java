@@ -18,11 +18,9 @@ public interface SubjectRepository extends JpaRepository<Subject, Integer> {
     @Query(value = """
     SELECT 
         s.id AS subjectId,
+        s.subject_class AS subjectCLass,    
         s.subject_name AS subjectName,
         s.icon AS icon,
-        
-        -- Đếm tổng số Chapter
-        (SELECT COUNT(c.id) FROM chapters c WHERE c.subject_id = s.id) AS totalChapters,
         
         -- Đếm tổng số Lesson
         (SELECT COUNT(l.id) 

@@ -21,6 +21,7 @@ public class UserXPHistoryService {
     private final UserXPHistoryRepository historyRepository;
 
     private final UserRepository userRepository;
+
     @Transactional
     public UserXPHistoryResponse addXpRecord(UserXPHistoryRequest request) {
 
