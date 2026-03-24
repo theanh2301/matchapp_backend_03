@@ -11,6 +11,7 @@ import lombok.NoArgsConstructor;
 import lombok.experimental.FieldDefaults;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 @Data
 @NoArgsConstructor
@@ -22,7 +23,7 @@ public class FlashcardProgressRequest {
     @NotNull(message = "lastReviewed cannot be null")
     @Past(message = "lastReviewed must be in the past")
     @JsonFormat(pattern = "yyyy-MM-dd")
-    LocalDate lastReviewed;
+    LocalDateTime lastReviewed;
     @NotNull(message = "totalXP cannot be null")
     @Min(value = 0)
     Integer totalXP;

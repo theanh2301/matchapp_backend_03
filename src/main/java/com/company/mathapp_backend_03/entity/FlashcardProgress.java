@@ -5,6 +5,7 @@ import lombok.*;
 import lombok.experimental.FieldDefaults;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 @Builder
 @NoArgsConstructor
@@ -19,7 +20,7 @@ public class FlashcardProgress {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     Integer id;
     Boolean isKnown;
-    LocalDate lastReviewed;
+    LocalDateTime lastReviewed;
     Integer totalXP;
 
     @ManyToOne

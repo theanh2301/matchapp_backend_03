@@ -5,6 +5,7 @@ import lombok.*;
 import lombok.experimental.FieldDefaults;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 @Builder
 @AllArgsConstructor
@@ -20,7 +21,7 @@ public class UserAnswer {
     Integer id;
 
     Boolean isCorrect;
-    LocalDate AnsweredAt;
+    LocalDateTime answeredAt;
     Integer totalXP;
 
     @ManyToOne

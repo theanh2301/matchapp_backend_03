@@ -17,9 +17,15 @@ public class FlashcardProgressApi {
     private final FlashcardProgressService flashcardProgressService;
 
     @GetMapping("/{userId}/{flashcardId}")
-    public List<FlashcardProgressResponse> getFlashcardProgress(@PathVariable Integer userId,
+    public ResponseEntity<FlashcardProgressResponse> getFlashcardProgress(@PathVariable Integer userId,
                                                       @PathVariable Integer flashcardId) {
-        return flashcardProgressService.getFlashcardProgress(userId, flashcardId);
+        FlashcardProgressResponse response = flashcardProgressService.getFlashcardProgress(userId, flashcardId);
+
+        if (response == null) {
+            return ResponseEntity.noContent().build();
+        }
+
+        return ResponseEntity.ok(response);
     }
 
     @PostMapping("/save")

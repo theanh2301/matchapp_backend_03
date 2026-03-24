@@ -15,7 +15,9 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -24,17 +26,21 @@ public class FlashcardProgressService {
     private final FlashcardRepository flashcardRepository;
     private final UserRepository userRepository;
 
-    public List<FlashcardProgressResponse> getFlashcardProgress(Integer flashcardId, Integer userId) {
-        List<FlashcardProgress> flashcardProgresses = flashcardProgressRepository
-                .findByFlashcardIdAndUserId(flashcardId, userId);
+    public FlashcardProgressResponse getFlashcardProgress(Integer flashcardId, Integer userId) {
+        Optional<FlashcardProgress> flashcardProgresses = flashcardProgressRepository.findByFlashcardIdAndUserId(flashcardId, userId);
 
-        return flashcardProgresses.stream().map(flashcardProgress ->
-                new FlashcardProgressResponse(
+        if (flashcardProgresses.isEmpty()) {
+            return null;
+        }
+
+        FlashcardProgress flashcardProgress = new FlashcardProgress();
+
+        return new FlashcardProgressResponse(
                     flashcardProgress.getId(),
                     flashcardProgress.getIsKnown(),
                     flashcardProgress.getLastReviewed(),
                     flashcardProgress.getTotalXP()
-                )).toList();
+                );
     }
 
     @Transactional
@@ -59,7 +65,7 @@ public class FlashcardProgressService {
                 });
 
         progress.setIsKnown(flashcardProgressRequest.getIsKnown());
-        progress.setLastReviewed(flashcardProgressRequest.getLastReviewed() != null ? flashcardProgressRequest.getLastReviewed() : LocalDate.now());
+        progress.setLastReviewed(flashcardProgressRequest.getLastReviewed() != null ? flashcardProgressRequest.getLastReviewed() : LocalDateTime.now());
 
         int currentXP = (progress.getTotalXP() != null) ? progress.getTotalXP() : 0;
         progress.setTotalXP(currentXP + flashcardProgressRequest.getTotalXP());

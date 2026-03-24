@@ -4,7 +4,6 @@ import com.company.mathapp_backend_03.entity.MatchCard;
 import com.company.mathapp_backend_03.entity.MatchCardResult;
 import com.company.mathapp_backend_03.entity.User;
 import com.company.mathapp_backend_03.model.request.MatchCardResultRequest;
-import com.company.mathapp_backend_03.model.response.FlashcardProgressResponse;
 import com.company.mathapp_backend_03.model.response.MatchCardResultResponse;
 import com.company.mathapp_backend_03.repository.MatchCardRepository;
 import com.company.mathapp_backend_03.repository.MatchCardResultRepository;
@@ -16,6 +15,7 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -25,18 +25,22 @@ public class MatchCardResultService {
     private final UserRepository userRepository;
 
 
-    public List<MatchCardResultResponse> getMatchCardResult(Integer matchCardId, Integer userId) {
-        List<MatchCardResult> matchCardResults = matchCardResultRepository
-                .findByMatchCardIdAndUserId(matchCardId, userId);
+    public MatchCardResultResponse getMatchCardResult(Integer matchCardId, Integer userId) {
+        Optional<MatchCardResult> matchCardResults = matchCardResultRepository.findByMatchCardIdAndUserId(matchCardId, userId);
 
-        return matchCardResults.stream().map(matchCardResult ->
-                new MatchCardResultResponse(
+        if (matchCardResults.isEmpty()) {
+            return null;
+        }
+
+        MatchCardResult matchCardResult = new MatchCardResult();
+
+        return new MatchCardResultResponse(
                         matchCardResult.getId(),
                         matchCardResult.getTotalPairs(),
                         matchCardResult.getCorrectPairs(),
                         matchCardResult.getTimeTaken(),
                         matchCardResult.getTotalXP()
-                )).toList();
+                );
     }
 
     @Transactional
@@ -49,7 +53,7 @@ public class MatchCardResultService {
                 .orElseThrow(() -> new EntityNotFoundException("User not found"));
 
         if (matchCardResultRequest.getCorrectPairs() > matchCardResultRequest.getTotalPairs()) {
-            throw new IllegalArgumentException("Số cặp đúng không thể lớn hơn tổng số cặp.");
+            throw new IllegalArgumentException("Correct pairs cannot exceed total pairs.");
         }
 
         MatchCardResult result = matchCardResultRepository
@@ -72,7 +76,7 @@ public class MatchCardResultService {
         try {
             matchCardResultRepository.save(result);
         } catch (DataIntegrityViolationException e) {
-            throw new IllegalStateException("Thao tác quá nhanh, tiến độ đang được xử lý.");
+            throw new IllegalStateException("Operation too fast, progress is being processed.");
         }
     }
 }

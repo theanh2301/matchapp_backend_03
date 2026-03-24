@@ -8,6 +8,7 @@ import lombok.NoArgsConstructor;
 import lombok.experimental.FieldDefaults;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 @Data
 @NoArgsConstructor
@@ -16,6 +17,6 @@ import java.time.LocalDate;
 public class FlashcardProgressResponse {
     Integer id;
     Boolean isKnown;
-    LocalDate lastReviewed;
+    LocalDateTime lastReviewed;
     Integer totalXP;
 }

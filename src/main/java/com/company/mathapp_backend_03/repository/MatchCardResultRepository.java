@@ -11,7 +11,7 @@ import java.util.Optional;
 
 @Repository
 public interface MatchCardResultRepository extends JpaRepository<MatchCardResult, Integer> {
-    List<MatchCardResult> findByMatchCardIdAndUserId(Integer matchCardId, Integer userId);
+    Optional<MatchCardResult> findByMatchCardIdAndUserId(Integer matchCardId, Integer userId);
 
     Optional<MatchCardResult> findByMatchCardAndUser(MatchCard matchCard, User user);
 }

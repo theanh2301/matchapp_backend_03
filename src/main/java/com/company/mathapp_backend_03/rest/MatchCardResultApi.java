@@ -1,6 +1,8 @@
 package com.company.mathapp_backend_03.rest;
 
 import com.company.mathapp_backend_03.model.request.MatchCardResultRequest;
+import com.company.mathapp_backend_03.model.response.FlashcardProgressResponse;
+import com.company.mathapp_backend_03.model.response.MatchCardResponse;
 import com.company.mathapp_backend_03.model.response.MatchCardResultResponse;
 import com.company.mathapp_backend_03.service.MatchCardResultService;
 import jakarta.validation.Valid;
@@ -17,9 +19,16 @@ public class MatchCardResultApi {
     private final MatchCardResultService matchCardResultService;
 
     @GetMapping("/{userId}/{matchCardId}")
-    public List<MatchCardResultResponse> getMatchCardResult(@PathVariable Integer userId,
+    public ResponseEntity<MatchCardResultResponse> getMatchCardResult(@PathVariable Integer userId,
                                                             @PathVariable Integer matchCardId) {
-        return matchCardResultService.getMatchCardResult(userId, matchCardId);
+
+        MatchCardResultResponse response = matchCardResultService.getMatchCardResult(userId, matchCardId);
+
+        if (response == null) {
+            return ResponseEntity.noContent().build();
+        }
+
+        return ResponseEntity.ok(response);
     }
 
     @PostMapping("/save")
