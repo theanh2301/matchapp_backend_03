@@ -6,6 +6,7 @@ import lombok.*;
 import lombok.experimental.FieldDefaults;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 @Builder
 @AllArgsConstructor
@@ -23,7 +24,7 @@ public class UserXPHistory {
     Integer xp;
     Source source;
     Integer sourcedId;
-    LocalDate EarnedAt;
+    LocalDateTime EarnedAt;
 
     @OneToOne
     @JoinColumn(name = "user_id")
