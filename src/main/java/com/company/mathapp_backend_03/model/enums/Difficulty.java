@@ -1,8 +1,8 @@
 package com.company.mathapp_backend_03.model.enums;
 
-public enum TypeQuestion {
+public enum Difficulty {
     QUIZ,
-    DAILY,
-    TOPIC,
-    CHALLENGE
+    EASY,
+    MEDIUM,
+    HARD
 }

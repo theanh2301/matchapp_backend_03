@@ -20,14 +20,14 @@ import java.util.Optional;
 public class UserAnswerService {
 
     private final UserAnswerRepository userAnswerRepository;
-    private final QuestionRepository questionRepository;
-    private final AnswerRepository answerRepository;
+    private final QuizQuestionRepository quizQuestionRepository;
+    private final QuizAnswerRepository quizAnswerRepository;
     private final UserRepository userRepository;
     private final UserXPHistoryRepository historyRepository;
     private final UserStatRepository userStatRepository;
 
     public UserAnswerResponse getUserAnswer(Integer userId, Integer questionId) {
-        Optional<UserAnswer> userAnswerOpt = userAnswerRepository.findByUserIdAndQuestionId(userId, questionId);
+        Optional<UserAnswer> userAnswerOpt = userAnswerRepository.findByUserIdAndQuizQuestionId(userId, questionId);
 
         if (userAnswerOpt.isEmpty()) {
             return null;
@@ -45,36 +45,36 @@ public class UserAnswerService {
     @Transactional
     public void addOrUpdateUserAnswer(UserAnswerRequest userAnswerRequest) {
 
-        Question question = questionRepository.findById(userAnswerRequest.getQuestionId())
+        QuizQuestion quizQuestion = quizQuestionRepository.findById(userAnswerRequest.getQuestionId())
                 .orElseThrow(() -> new EntityNotFoundException("Question not found"));
 
-        Answer answer = answerRepository.findById(userAnswerRequest.getAnswerId())
+        QuizAnswer quizAnswer = quizAnswerRepository.findById(userAnswerRequest.getAnswerId())
                 .orElseThrow(() -> new EntityNotFoundException("Answer not found"));
 
         User user = userRepository.findById(userAnswerRequest.getUserId())
                 .orElseThrow(() -> new EntityNotFoundException("User not found"));
 
-        if (!answer.getQuestion().getId().equals(question.getId())) {
+        if (!quizAnswer.getQuizQuestion().getId().equals(quizQuestion.getId())) {
             throw new IllegalArgumentException("This answer does not belong to the requested question.");
         }
 
         UserAnswer userAnswer = userAnswerRepository
-                .findByUserAndQuestion(user, question)
+                .findByUserAndQuizQuestion(user, quizQuestion)
                 .orElseGet(() -> {
                     UserAnswer newUserAnswer = new UserAnswer();
                     newUserAnswer.setUser(user);
-                    newUserAnswer.setQuestion(question);
+                    newUserAnswer.setQuizQuestion(quizQuestion);
                     return newUserAnswer;
                 });
 
-        userAnswer.setAnswer(answer);
+        userAnswer.setQuizAnswer(quizAnswer);
 
-        boolean isCorrect = answer.getIsCorrect();
+        boolean isCorrect = quizAnswer.getIsCorrect();
         userAnswer.setIsCorrect(isCorrect);
         userAnswer.setAnsweredAt(LocalDateTime.now());
 
         if (isCorrect) {
-            userAnswer.setTotalXP(question.getXpReward());
+            userAnswer.setTotalXP(quizQuestion.getXpReward());
         } else {
             userAnswer.setTotalXP(0);
         }
@@ -89,38 +89,38 @@ public class UserAnswerService {
     @Transactional
     public UserXPHistoryResponse processUserAnswer(UserAnswerRequest request) {
 
-        Question question = questionRepository.findById(request.getQuestionId())
+        QuizQuestion quizQuestion = quizQuestionRepository.findById(request.getQuestionId())
                 .orElseThrow(() -> new EntityNotFoundException("Không tìm thấy Question"));
 
-        Answer answer = answerRepository.findById(request.getAnswerId())
+        QuizAnswer quizAnswer = quizAnswerRepository.findById(request.getAnswerId())
                 .orElseThrow(() -> new EntityNotFoundException("Không tìm thấy Answer"));
 
         User user = userRepository.findById(request.getUserId())
                 .orElseThrow(() -> new EntityNotFoundException("Không tìm thấy User"));
 
-        if (!answer.getQuestion().getId().equals(question.getId())) {
+        if (!quizAnswer.getQuizQuestion().getId().equals(quizQuestion.getId())) {
             throw new IllegalArgumentException("Câu trả lời này không thuộc về câu hỏi được yêu cầu.");
         }
 
         UserAnswer existingUserAnswer = userAnswerRepository
-                .findByUserAndQuestion(user, question)
+                .findByUserAndQuizQuestion(user, quizQuestion)
                 .orElse(null);
 
-        boolean isCorrect = answer.getIsCorrect();
+        boolean isCorrect = quizAnswer.getIsCorrect();
         int earnedXp = 0;
 
         boolean isFirstTimeCorrect = isCorrect && (existingUserAnswer == null || !existingUserAnswer.getIsCorrect());
 
         if (isFirstTimeCorrect) {
-            earnedXp = question.getXpReward();
+            earnedXp = quizQuestion.getXpReward();
         }
 
         try {
-            updateUserAnswerRecord(user, question, answer, existingUserAnswer, isCorrect);
+            updateUserAnswerRecord(user, quizQuestion, quizAnswer, existingUserAnswer, isCorrect);
 
             UserXPHistory history = null;
             if (earnedXp > 0) {
-                history = addXpHistory(user, earnedXp, question.getId());
+                history = addXpHistory(user, earnedXp, quizQuestion.getId());
                 updateUserStats(user, earnedXp);
             }
 
@@ -131,12 +131,12 @@ public class UserAnswerService {
         }
     }
 
-    private void updateUserAnswerRecord(User user, Question question, Answer answer, UserAnswer existingRecord, boolean isCorrect) {
+    private void updateUserAnswerRecord(User user, QuizQuestion quizQuestion, QuizAnswer quizAnswer, UserAnswer existingRecord, boolean isCorrect) {
         UserAnswer userAnswer = existingRecord != null ? existingRecord : new UserAnswer();
 
         userAnswer.setUser(user);
-        userAnswer.setQuestion(question);
-        userAnswer.setAnswer(answer);
+        userAnswer.setQuizQuestion(quizQuestion);
+        userAnswer.setQuizAnswer(quizAnswer);
         userAnswer.setIsCorrect(isCorrect);
         userAnswer.setAnsweredAt(LocalDateTime.now());
 
@@ -145,7 +145,7 @@ public class UserAnswerService {
         } else {
             userAnswer.setIsCorrect(isCorrect);
             if (isCorrect) {
-                userAnswer.setTotalXP(question.getXpReward());
+                userAnswer.setTotalXP(quizQuestion.getXpReward());
             } else {
                 userAnswer.setTotalXP(0);
             }

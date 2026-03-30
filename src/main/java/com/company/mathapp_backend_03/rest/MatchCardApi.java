@@ -1,6 +1,7 @@
 package com.company.mathapp_backend_03.rest;
 
 import com.company.mathapp_backend_03.model.request.MatchCardRequest;
+import com.company.mathapp_backend_03.model.response.ApiResponse;
 import com.company.mathapp_backend_03.model.response.MatchCardResponse;
 import com.company.mathapp_backend_03.service.MatchCardService;
 import jakarta.validation.Valid;
@@ -17,9 +18,17 @@ public class MatchCardApi {
     private final MatchCardService matchCardService;
 
     @GetMapping("/{lessonId}")
-    public List<MatchCardResponse> getMatchCard(@PathVariable Integer lessonId) {
+    public  ResponseEntity<ApiResponse<List<MatchCardResponse>>> getMatchCard(@PathVariable Integer lessonId) {
 
-        return  matchCardService.getMatchCard(lessonId);
+        List<MatchCardResponse> matchCard = matchCardService.getMatchCard(lessonId);
+
+        ApiResponse<List<MatchCardResponse>> response = new ApiResponse<>(
+                200,
+                "Get set match cards successfully",
+                matchCard
+        );
+
+        return  ResponseEntity.ok(response);
     }
 
     @PostMapping

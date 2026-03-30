@@ -9,12 +9,12 @@ import lombok.NoArgsConstructor;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class AnswerRequest {
+public class QuizAnswerRequest {
     @NotNull(message = "id cannot be null")
     private Integer id;
     @NotBlank(message = "content cannot be empty")
     private String content;
     @NotNull(message = "isCorrect cannot be empty")
     private Boolean isCorrect;
-
+    private String description;
 }

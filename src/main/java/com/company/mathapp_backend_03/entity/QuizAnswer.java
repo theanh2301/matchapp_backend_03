@@ -1,6 +1,5 @@
 package com.company.mathapp_backend_03.entity;
 
-import com.company.mathapp_backend_03.model.enums.TypeQuestion;
 import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
@@ -12,20 +11,18 @@ import lombok.experimental.FieldDefaults;
 @Setter
 @FieldDefaults(level = AccessLevel.PRIVATE)
 @Entity
-@Table(name = "questions")
-public class Question {
+@Table(name = "quiz_answers")
+public class QuizAnswer {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     Integer id;
-    String content;
 
-    @Enumerated(EnumType.STRING)
-    @Column(name = "type_question")
-    TypeQuestion typeQuestion;
-    Integer xpReward;
+    @NonNull
+    String content;
+    Boolean isCorrect;
+    String description;
 
     @ManyToOne
-    @JoinColumn(name = "lesson_id")
-    Lesson lesson;
-
+    @JoinColumn(name = "quiz_question_id")
+    QuizQuestion quizQuestion;
 }

@@ -19,10 +19,8 @@ public class RegisterRequest {
     String email;
     @NotBlank(message = "fullname cannot be empty")
     String fullName;
-    @NotBlank(message = "Phone number is required")
     @Pattern(regexp = "^[0-9]{10}$", message = "Phone number must be exactly 10 digits")
     String phone;
-    @NotNull(message = "Date of birth is required")
     @Past(message = "Date of birth must be in the past")
     @JsonFormat(pattern = "yyyy-MM-dd")
     LocalDate dob;

@@ -4,7 +4,6 @@ import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Builder
@@ -30,10 +29,10 @@ public class UserAnswer {
 
     @ManyToOne
     @JoinColumn(name = "question_id")
-    Question question;
+    QuizQuestion quizQuestion;
 
     @ManyToOne
     @JoinColumn(name = "answer_id")
-    Answer answer;
+    QuizAnswer quizAnswer;
 
 }

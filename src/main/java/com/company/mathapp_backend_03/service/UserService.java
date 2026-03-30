@@ -26,7 +26,7 @@ public class UserService {
     private final UserRepository userRepository;
     private final BCryptPasswordEncoder bCryptPasswordEncoder = new BCryptPasswordEncoder();
 
-    public void register(RegisterRequest registerRequest) {
+    public User register(RegisterRequest registerRequest) {
         Optional<User> existingUser = userRepository.findByEmail(registerRequest.getEmail());
         if (existingUser.isPresent()) {
             throw new BadRequestException("Email already in use");
@@ -60,7 +60,7 @@ public class UserService {
 
         stat.setUser(user);
 
-        userRepository.save(user);
+        return userRepository.save(user);
     }
 
     public UserResponse login(LoginRequest loginRequest) {

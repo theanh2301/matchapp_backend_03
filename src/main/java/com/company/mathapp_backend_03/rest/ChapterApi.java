@@ -2,6 +2,7 @@ package com.company.mathapp_backend_03.rest;
 
 import com.company.mathapp_backend_03.model.dto.ChapterOverviewDTO;
 import com.company.mathapp_backend_03.model.request.ChapterRequest;
+import com.company.mathapp_backend_03.model.response.ApiResponse;
 import com.company.mathapp_backend_03.model.response.ChapterResponse;
 import com.company.mathapp_backend_03.service.ChapterService;
 import jakarta.validation.Valid;
@@ -18,12 +19,20 @@ public class ChapterApi {
     private final ChapterService chapterService;
 
     @GetMapping("/{subjectId}/chapters")
-    public ResponseEntity<List<ChapterOverviewDTO>> getChaptersInSubject(
-            @PathVariable Integer subjectId,
-            @RequestParam Integer userId) {
+    public ResponseEntity<ApiResponse<List<ChapterOverviewDTO>>> getChaptersInSubject(
+            @RequestParam Integer userId,
+            @PathVariable Integer subjectId
+            ) {
 
-        List<ChapterOverviewDTO> chapters = chapterService.getChaptersBySubject(subjectId, userId);
-        return ResponseEntity.ok(chapters);
+        List<ChapterOverviewDTO> overviews = chapterService.getChaptersBySubject(userId, subjectId);
+
+        ApiResponse<List<ChapterOverviewDTO>> response = new ApiResponse<>(
+                200,
+                "Lấy danh sách chương thành công",
+                overviews
+        );
+
+        return ResponseEntity.ok(response);
     }
 
     @GetMapping("/{subjectId}")

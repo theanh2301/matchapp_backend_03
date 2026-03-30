@@ -15,7 +15,7 @@ import lombok.experimental.FieldDefaults;
 public class Lesson {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    Integer Id;
+    Integer id;
     String lessonName;
     String description;
 

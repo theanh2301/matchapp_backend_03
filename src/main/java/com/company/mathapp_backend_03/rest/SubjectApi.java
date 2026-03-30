@@ -2,6 +2,7 @@ package com.company.mathapp_backend_03.rest;
 
 import com.company.mathapp_backend_03.model.dto.SubjectOverviewDTO;
 import com.company.mathapp_backend_03.model.request.SubjectRequest;
+import com.company.mathapp_backend_03.model.response.ApiResponse;
 import com.company.mathapp_backend_03.model.response.SubjectResponse;
 import com.company.mathapp_backend_03.service.SubjectService;
 import jakarta.validation.Valid;
@@ -25,12 +26,19 @@ public class SubjectApi {
     }
 
     @GetMapping("/overview")
-    public ResponseEntity<List<SubjectOverviewDTO>> getSubjectOverviews(
-            @RequestParam Integer userId) {
+    public ResponseEntity<ApiResponse<List<SubjectOverviewDTO>>> getSubjectOverviews(
+            @RequestParam Integer userId,
+            @RequestParam Integer subjectClass) {
 
-        List<SubjectOverviewDTO> overviews = subjectService.getSubjectOverviews(userId);
+        List<SubjectOverviewDTO> overviews = subjectService.getSubjectOverviews(userId, subjectClass);
 
-        return ResponseEntity.ok(overviews);
+        ApiResponse<List<SubjectOverviewDTO>> response = new ApiResponse<>(
+                200,
+                "Lấy danh sách môn học thành công",
+                overviews
+        );
+
+        return ResponseEntity.ok(response);
     }
 
     @PostMapping

@@ -14,7 +14,6 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
-import java.util.Objects;
 import java.util.Optional;
 
 @Service
@@ -24,7 +23,7 @@ public class LessonService {
     private final ChapterRepository chapterRepository;
     private final FlashcardRepository flashcardRepository;
     private final MatchCardRepository matchCardRepository;
-    private final QuestionRepository questionRepository;
+    private final QuizQuestionRepository quizQuestionRepository;
 
     public List<LessonResponse> getLessonsByChapterId(Integer id) {
         List<Lesson> lessons = lessonRepository.findByChapterId(id);
@@ -92,7 +91,7 @@ public class LessonService {
 
         if (flashcardRepository.existsByLessonId(id)
                 || matchCardRepository.existsByLessonId(id)
-                || questionRepository.existsByLessonId(id)) {
+                || quizQuestionRepository.existsByLessonId(id)) {
             throw new ConflictException("Cannot delete lesson because it contains related data");
         }
 
@@ -103,7 +102,7 @@ public class LessonService {
         }
     }
 
-    public List<LessonOverviewDTO> getLessonOverviewsByChapter(Integer chapterId, Integer userId) {
-        return lessonRepository.getLessonOverviewsByChapter(chapterId, userId);
+    public List<LessonOverviewDTO> getLessonOverviewsByChapterId(Integer userId, Integer chapterId) {
+        return lessonRepository.getLessonOverviewsByChapterId(userId, chapterId);
     }
 }

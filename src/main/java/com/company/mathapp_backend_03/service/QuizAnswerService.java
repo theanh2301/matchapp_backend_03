@@ -1,13 +1,13 @@
 package com.company.mathapp_backend_03.service;
 
-import com.company.mathapp_backend_03.entity.Answer;
-import com.company.mathapp_backend_03.entity.Question;
+import com.company.mathapp_backend_03.entity.QuizAnswer;
+import com.company.mathapp_backend_03.entity.QuizQuestion;
 import com.company.mathapp_backend_03.exception.BadRequestException;
 import com.company.mathapp_backend_03.exception.NotFoundException;
 import com.company.mathapp_backend_03.model.request.ListAnswerRequest;
-import com.company.mathapp_backend_03.model.response.AnswerResponse;
-import com.company.mathapp_backend_03.repository.AnswerRepository;
-import com.company.mathapp_backend_03.repository.QuestionRepository;
+import com.company.mathapp_backend_03.model.response.QuizAnswerResponse;
+import com.company.mathapp_backend_03.repository.QuizAnswerRepository;
+import com.company.mathapp_backend_03.repository.QuizQuestionRepository;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -17,28 +17,29 @@ import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
-public class AnswerService {
-    private final AnswerRepository answerRepository;
-    private final QuestionRepository questionRepository;
+public class QuizAnswerService {
+    private final QuizAnswerRepository quizAnswerRepository;
+    private final QuizQuestionRepository quizQuestionRepository;
 
-    public List<AnswerResponse> getAnswersByQuestionId(Integer id) {
-        List<Answer> answers = answerRepository.findAnswerByQuestionId(id);
+    public List<QuizAnswerResponse> getAnswersByQuestionId(Integer id) {
+        List<QuizAnswer> quizAnswers = quizAnswerRepository.findAnswerByQuizQuestionId(id);
 
-        return answers.stream().map(a -> new AnswerResponse(
+        return quizAnswers.stream().map(a -> new QuizAnswerResponse(
                 a.getId(),
                 a.getContent(),
-                a.getIsCorrect()
+                a.getIsCorrect(),
+                a.getDescription()
         )).toList();
     }
 
     @Transactional
     public void addAnswers(ListAnswerRequest request) {
 
-        Question question = questionRepository.findById(request.getQuestionId())
+        QuizQuestion quizQuestion = quizQuestionRepository.findById(request.getQuestionId())
                 .orElseThrow(() -> new BadRequestException("Question not found"));
 
-        List<Answer> existingAnswers = answerRepository.findByQuestion(question);
-        if (!existingAnswers.isEmpty()) {
+        List<QuizAnswer> existingQuizAnswers = quizAnswerRepository.findByQuizQuestion(quizQuestion);
+        if (!existingQuizAnswers.isEmpty()) {
             throw new BadRequestException("Question already has answers");
         }
 
@@ -47,28 +48,28 @@ public class AnswerService {
         }
 
         long correctCount = request.getAnswers().stream()
-                .filter(AnswerResponse::getIsCorrect)
+                .filter(QuizAnswerResponse::getIsCorrect)
                 .count();
 
         if (correctCount != 1) {
             throw new BadRequestException("Must have exactly 1 correct answer");
         }
 
-        List<Answer> answers = request.getAnswers().stream()
-                .map(item -> Answer.builder()
+        List<QuizAnswer> quizAnswers = request.getAnswers().stream()
+                .map(item -> QuizAnswer.builder()
                         .content(item.getContent())
                         .isCorrect(item.getIsCorrect())
-                        .question(question)
+                        .quizQuestion(quizQuestion)
                         .build())
                 .toList();
 
-        answerRepository.saveAll(answers);
+        quizAnswerRepository.saveAll(quizAnswers);
     }
 
     @Transactional
     public void updateAnswers(ListAnswerRequest request) {
 
-        Question question = questionRepository.findById(request.getQuestionId())
+        QuizQuestion quizQuestion = quizQuestionRepository.findById(request.getQuestionId())
                 .orElseThrow(() -> new BadRequestException("Question not found"));
 
         if (request.getAnswers() == null || request.getAnswers().size() != 4) {
@@ -76,7 +77,7 @@ public class AnswerService {
         }
 
         long correctCount = request.getAnswers().stream()
-                .filter(AnswerResponse::getIsCorrect)
+                .filter(QuizAnswerResponse::getIsCorrect)
                 .count();
 
         if (correctCount != 1) {
@@ -84,37 +85,37 @@ public class AnswerService {
         }
 
         Set<String> contents = request.getAnswers().stream()
-                .map(AnswerResponse::getContent)
+                .map(QuizAnswerResponse::getContent)
                 .collect(Collectors.toSet());
 
         if (contents.size() < 4) {
             throw new BadRequestException("Duplicate answers are not allowed");
         }
 
-        List<Answer> updatedAnswers = new ArrayList<>();
+        List<QuizAnswer> updatedQuizAnswers = new ArrayList<>();
 
-        for (AnswerResponse item : request.getAnswers()) {
+        for (QuizAnswerResponse item : request.getAnswers()) {
 
-            Answer answer = answerRepository.findById(item.getId())
+            QuizAnswer quizAnswer = quizAnswerRepository.findById(item.getId())
                     .orElseThrow(() -> new BadRequestException("Answer not found"));
 
-            if (!answer.getQuestion().getId().equals(question.getId())) {
+            if (!quizAnswer.getQuizQuestion().getId().equals(quizQuestion.getId())) {
                 throw new BadRequestException("Answer does not belong to this question");
             }
 
-            answer.setContent(item.getContent());
-            answer.setIsCorrect(item.getIsCorrect());
+            quizAnswer.setContent(item.getContent());
+            quizAnswer.setIsCorrect(item.getIsCorrect());
 
-            updatedAnswers.add(answer);
+            updatedQuizAnswers.add(quizAnswer);
         }
 
-        answerRepository.saveAll(updatedAnswers);
+        quizAnswerRepository.saveAll(updatedQuizAnswers);
     }
 
     public void deleteAnswersByQuestion(Integer questionId) {
-        Question question = questionRepository.findById(questionId)
+        QuizQuestion quizQuestion = quizQuestionRepository.findById(questionId)
                 .orElseThrow(() -> new NotFoundException("Question not found"));
 
-        answerRepository.deleteByQuestion(question);
+        quizAnswerRepository.deleteByQuizQuestion(quizQuestion);
     }
 }

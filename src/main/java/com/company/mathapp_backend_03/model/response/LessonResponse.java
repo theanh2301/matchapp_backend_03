@@ -13,5 +13,4 @@ public class LessonResponse {
     Integer id;
     String lessonName;
     String description;
-
 }

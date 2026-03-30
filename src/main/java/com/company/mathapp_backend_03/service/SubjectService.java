@@ -24,12 +24,12 @@ public class SubjectService {
     private final ChapterRepository chapterRepository;
     private final UserRepository userRepository;
 
-    public List<SubjectOverviewDTO> getSubjectOverviews(Integer userId) {
+    public List<SubjectOverviewDTO> getSubjectOverviews(Integer userId, Integer subjectClass) {
 
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new BadRequestException("User not found"));
 
-        return subjectRepository.getSubjectOverviews(user.getId());
+        return subjectRepository.getSubjectOverviewsByClass(user.getId(), subjectClass);
     }
 
     public List<SubjectResponse> getAllSubjects() {

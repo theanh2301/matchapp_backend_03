@@ -1,6 +1,6 @@
 package com.company.mathapp_backend_03.model.request;
 
-import com.company.mathapp_backend_03.model.response.AnswerResponse;
+import com.company.mathapp_backend_03.model.response.QuizAnswerResponse;
 import jakarta.validation.constraints.NotNull;
 import lombok.*;
 
@@ -11,7 +11,7 @@ import java.util.List;
 @AllArgsConstructor
 public class ListAnswerRequest {
     @NotNull(message = "answer cannot be null")
-    private List<AnswerResponse> answers;
+    private List<QuizAnswerResponse> answers;
     @NotNull(message = "questionId cannot be null")
     private Integer questionId;
 }

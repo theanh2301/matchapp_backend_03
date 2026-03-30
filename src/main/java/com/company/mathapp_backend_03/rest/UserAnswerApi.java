@@ -3,7 +3,7 @@ package com.company.mathapp_backend_03.rest;
 import com.company.mathapp_backend_03.model.request.UserAnswerRequest;
 import com.company.mathapp_backend_03.model.response.UserAnswerResponse;
 import com.company.mathapp_backend_03.model.response.UserXPHistoryResponse;
-import com.company.mathapp_backend_03.service.QuestionService;
+import com.company.mathapp_backend_03.service.QuizQuestionService;
 import com.company.mathapp_backend_03.service.UserAnswerService;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.validation.Valid;
@@ -21,7 +21,7 @@ import java.util.Map;
 public class UserAnswerApi {
 
     private final UserAnswerService userAnswerService;
-    private final QuestionService questionService;
+    private final QuizQuestionService quizQuestionService;
 
     @GetMapping("/detail")
     public ResponseEntity<UserAnswerResponse> getUserAnswer(

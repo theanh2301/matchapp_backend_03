@@ -11,17 +11,16 @@ import lombok.experimental.FieldDefaults;
 @Setter
 @FieldDefaults(level = AccessLevel.PRIVATE)
 @Entity
-@Table(name = "answers")
-public class Answer {
+@Table(name = "quiz_questions")
+public class QuizQuestion {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     Integer id;
-
-    @NonNull
     String content;
-    Boolean isCorrect;
+    Integer xpReward;
 
     @ManyToOne
-    @JoinColumn(name = "question_id")
-    Question question;
+    @JoinColumn(name = "lesson_id")
+    Lesson lesson;
+
 }

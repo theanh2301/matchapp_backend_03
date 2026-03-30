@@ -1,6 +1,8 @@
 package com.company.mathapp_backend_03.rest;
 
+import com.company.mathapp_backend_03.entity.Flashcard;
 import com.company.mathapp_backend_03.model.request.FlashcardRequest;
+import com.company.mathapp_backend_03.model.response.ApiResponse;
 import com.company.mathapp_backend_03.model.response.FlashcardResponse;
 import com.company.mathapp_backend_03.service.FlashcardService;
 import jakarta.validation.Valid;
@@ -18,8 +20,17 @@ public class FlashcardApi {
     private final FlashcardService flashcardService;
 
     @GetMapping("/{lessonId}")
-    public List<FlashcardResponse> getFlashcards(@PathVariable Integer lessonId) {
-        return flashcardService.getFlashcard(lessonId);
+    public ResponseEntity<ApiResponse<List<FlashcardResponse>>> getFlashcards(@PathVariable Integer lessonId) {
+
+        List<FlashcardResponse> flashcards = flashcardService.getFlashcard(lessonId);
+
+        ApiResponse<List<FlashcardResponse>> response = new ApiResponse<>(
+                200,
+                "Get set flashcard successfully",
+                flashcards
+        );
+
+        return ResponseEntity.ok(response);
     }
 
     @PostMapping

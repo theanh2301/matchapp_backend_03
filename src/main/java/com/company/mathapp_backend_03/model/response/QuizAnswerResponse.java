@@ -9,8 +9,9 @@ import lombok.Setter;
 @Setter
 @AllArgsConstructor
 @NoArgsConstructor
-public class AnswerResponse {
+public class QuizAnswerResponse {
     Integer id;
     String content;
     Boolean isCorrect;
+    String description;
 }

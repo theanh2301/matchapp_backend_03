@@ -18,7 +18,6 @@ public interface SubjectRepository extends JpaRepository<Subject, Integer> {
     @Query(value = """
     SELECT 
         s.id AS subjectId,
-        s.subject_class AS subjectCLass,    
         s.subject_name AS subjectName,
         s.icon AS icon,
         
@@ -48,12 +47,11 @@ public interface SubjectRepository extends JpaRepository<Subject, Integer> {
             +
             COALESCE((SELECT SUM(ua.totalxp) 
                       FROM user_answer ua 
-                      JOIN questions q ON ua.question_id = q.id 
+                      JOIN quiz_questions q ON ua.question_id = q.id 
                       JOIN lessons l ON q.lesson_id = l.id 
                       JOIN chapters c ON l.chapter_id = c.id 
                       WHERE c.subject_id = s.id AND ua.user_id = :userId), 0) 
             +
-            -- Đã đổi sang bảng match_card_result và match_card theo đúng Entity của bạn
             COALESCE((SELECT SUM(mcr.totalxp) 
                       FROM match_card_result mcr 
                       JOIN match_card mc ON mcr.match_card_id = mc.id 
@@ -63,8 +61,11 @@ public interface SubjectRepository extends JpaRepository<Subject, Integer> {
         ) AS totalXp
         
     FROM subjects s
+    WHERE s.subject_class = :subjectClass
     """, nativeQuery = true)
-
-    List<SubjectOverviewDTO> getSubjectOverviews(@Param("userId") Integer userId);
+    List<SubjectOverviewDTO> getSubjectOverviewsByClass(
+            @Param("userId") Integer userId,
+            @Param("subjectClass") Integer subjectClass
+    );
 
 }
