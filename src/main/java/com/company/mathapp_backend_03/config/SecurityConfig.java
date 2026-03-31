@@ -14,13 +14,7 @@ public class SecurityConfig {
         http
             .csrf(csrf -> csrf.disable())
             .authorizeHttpRequests(auth -> auth
-                    .requestMatchers("/api/subjects/overview/**").permitAll()
-                    .requestMatchers("/api/chapters/**").permitAll()
-                    .requestMatchers("/api/lessons/**").permitAll()
-                    .requestMatchers("/api/flashcards/**").permitAll()
-                    .requestMatchers("/api/quiz/**").permitAll()
-                    .requestMatchers("/api/match_cards/**").permitAll()
-                    .requestMatchers("/api/practices/**").permitAll()
+                    .requestMatchers("/api/**").permitAll()
                     .anyRequest().authenticated()
             );
 

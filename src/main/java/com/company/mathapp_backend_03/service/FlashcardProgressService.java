@@ -7,10 +7,10 @@ import com.company.mathapp_backend_03.model.response.FlashcardProgressResponse;
 import com.company.mathapp_backend_03.model.response.UserXPHistoryResponse;
 import com.company.mathapp_backend_03.repository.*;
 import jakarta.persistence.EntityNotFoundException;
-import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.Optional;
@@ -81,92 +81,132 @@ public class FlashcardProgressService {
     public UserXPHistoryResponse processFlashcardStudy(FlashcardProgressRequest request) {
 
         User user = userRepository.findById(request.getUserId())
-                .orElseThrow(() -> new EntityNotFoundException("Không tìm thấy User với ID: " + request.getUserId()));
+                .orElseThrow(() -> new EntityNotFoundException("Không tìm thấy User"));
 
         Flashcard flashcard = flashcardRepository.findById(request.getFlashcardId())
-                .orElseThrow(() -> new EntityNotFoundException("Flashcard not found"));
+                .orElseThrow(() -> new EntityNotFoundException("Flashcard không tồn tại"));
 
-        FlashcardProgress existingProgress = flashcardProgressRepository
-                .findByFlashcardAndUser(flashcard, user)
+        FlashcardProgress progress = flashcardProgressRepository
+                .findByUserIdAndFlashcardId(user.getId(), flashcard.getId())
                 .orElse(null);
 
-        int earnedXp = 0;
-
-        boolean previouslyKnown = existingProgress != null && Boolean.TRUE.equals(existingProgress.getIsKnown());
+        boolean previouslyKnown = progress != null && Boolean.TRUE.equals(progress.getIsKnown());
         boolean newlyKnown = Boolean.TRUE.equals(request.getIsKnown());
 
-        if (newlyKnown && !previouslyKnown) {
-            earnedXp = flashcard.getXpReward();
-        }
+        int earnedXp = (newlyKnown && !previouslyKnown) ? flashcard.getXpReward() : 0;
 
-        try {
-            updateFlashcardProgress(user, flashcard, request, existingProgress, earnedXp);
+        // 1. Update progress
+        updateFlashcardProgress(user, flashcard, request, progress, earnedXp);
 
-            UserXPHistory history = null;
-            if (earnedXp > 0) {
+        UserXPHistory history = null;
+
+        if (earnedXp > 0) {
+
+            boolean exists = existsXpHistory(user.getId(), flashcard.getId());
+
+            if (!exists) {
                 history = addXpHistory(user, earnedXp, flashcard.getId());
                 updateUserStats(user, earnedXp);
+            } else {
+                history = userXPHistoryRepository
+                        .findByUserIdAndSourcedIdAndSource(
+                                user.getId(),
+                                flashcard.getId(),
+                                Source.FLASHCARD_GAME
+                        )
+                        .orElse(null);
             }
-
-            return history != null ? mapToResponse(history) : null;
-
-        } catch (DataIntegrityViolationException e) {
-            throw new IllegalStateException("Thao tác quá nhanh, tiến độ đang được xử lý.");
         }
+
+        return buildResponse(user, flashcard, history);
     }
 
-    private void updateFlashcardProgress(User user, Flashcard flashcard, FlashcardProgressRequest request, FlashcardProgress existingProgress, int earnedXp) {
+    private FlashcardProgress updateFlashcardProgress(
+            User user,
+            Flashcard flashcard,
+            FlashcardProgressRequest request,
+            FlashcardProgress progress,
+            int earnedXp
+    ) {
 
-        FlashcardProgress progress = existingProgress != null ? existingProgress : new FlashcardProgress();
-
-        if (existingProgress == null) {
-            progress.setFlashcard(flashcard);
+        if (progress == null) {
+            progress = new FlashcardProgress();
             progress.setUser(user);
+            progress.setFlashcard(flashcard);
             progress.setTotalXP(0);
         }
 
         progress.setIsKnown(request.getIsKnown());
-        progress.setLastReviewed(request.getLastReviewed() != null ? request.getLastReviewed() : LocalDateTime.now());
+        progress.setLastReviewed(LocalDateTime.now());
 
-        int currentXP = progress.getTotalXP() != null ? progress.getTotalXP() : 0;
-        progress.setTotalXP(currentXP + earnedXp);
+        if (earnedXp > 0) {
+            progress.setTotalXP(
+                    (progress.getTotalXP() == null ? 0 : progress.getTotalXP()) + earnedXp
+            );
+        }
 
-        flashcardProgressRepository.save(progress);
+        return flashcardProgressRepository.save(progress); // ❌ bỏ flush
     }
 
-    private UserXPHistory addXpHistory(User user, int xp, int flashcardId) {
+    @Transactional
+    public UserXPHistory addXpHistory(User user, int earnedXp, Integer flashcardId) {
+
         UserXPHistory history = new UserXPHistory();
         history.setUser(user);
-        history.setXp(xp);
-        history.setSource(Source.FLASHCARD_GAME); // Hardcode Source hoặc dùng Enum Source.FLASHCARD
+        history.setXp(earnedXp);
         history.setSourcedId(flashcardId);
+        history.setSource(Source.FLASHCARD_GAME);
         history.setEarnedAt(LocalDateTime.now());
 
-        return userXPHistoryRepository.save(history);
+        return userXPHistoryRepository.save(history); // ❌ bỏ flush
     }
 
     private void updateUserStats(User user, int earnedXp) {
+
         UserStat stats = userStatRepository.findById(user.getId())
                 .orElseGet(() -> {
-                    UserStat newStats = new UserStat();
-                    newStats.setUserId(user.getId());
-                    newStats.setTotalXP(0);
-                    return newStats;
+                    UserStat s = new UserStat();
+                    s.setUser(user);
+                    s.setTotalXP(0);
+                    s.setTotalLesson(0);
+                    s.setStreakDay(0);
+                    s.setLastStudyDate(LocalDateTime.now());
+                    return s;
                 });
 
-        int currentTotalXp = stats.getTotalXP() != null ? stats.getTotalXP() : 0;
-        stats.setTotalXP(currentTotalXp + earnedXp);
-        userStatRepository.save(stats);
+        stats.setTotalXP((stats.getTotalXP() == null ? 0 : stats.getTotalXP()) + earnedXp);
+
+        userStatRepository.save(stats); // ❌ bỏ flush
     }
 
-    private UserXPHistoryResponse mapToResponse(UserXPHistory entity) {
-        UserXPHistoryResponse response = new UserXPHistoryResponse();
-        response.setId(entity.getId());
-        if (entity.getUser() != null) response.setUserId(entity.getUser().getId());
-        response.setXp(entity.getXp());
-        response.setSource(entity.getSource().name());
-        response.setSourceId(entity.getSourcedId());
-        response.setEarnedAt(entity.getEarnedAt());
-        return response;
+    private boolean existsXpHistory(Integer userId, Integer flashcardId) {
+        return userXPHistoryRepository
+                .existsByUserIdAndSourcedIdAndSource(
+                        userId,
+                        flashcardId,
+                        Source.FLASHCARD_GAME
+                );
+    }
+
+    private UserXPHistoryResponse buildResponse(User user, Flashcard flashcard, UserXPHistory history) {
+
+        if (history != null) {
+            return UserXPHistoryResponse.builder()
+                    .id(history.getId())
+                    .xp(history.getXp())
+                    .sourceId(history.getSourcedId())
+                    .source(history.getSource().name())
+                    .earnedAt(history.getEarnedAt())
+                    .userId(history.getUser().getId())
+                    .build();
+        }
+
+        return UserXPHistoryResponse.builder()
+                .id(flashcard.getId())
+                .xp(0)
+                .source(Source.FLASHCARD_GAME.name())
+                .sourceId(flashcard.getId())
+                .userId(user.getId())
+                .build();
     }
 }

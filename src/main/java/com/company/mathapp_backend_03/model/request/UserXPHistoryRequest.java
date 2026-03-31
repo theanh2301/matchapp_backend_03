@@ -14,7 +14,7 @@ public class UserXPHistoryRequest {
     @NotNull(message = "xp cannot be null")
     private Integer xp;
     @NotNull(message = "source cannot be null")
-    private String source; // ví dụ: "LESSON", "QUIZ", "DAILY_CHALLENGE"
+    private String source;
     @NotNull(message = "sourceId cannot be null")
     private Integer sourceId;
 }

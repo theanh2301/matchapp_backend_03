@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonFormat;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Past;
+import jakarta.validation.constraints.PastOrPresent;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -21,8 +22,8 @@ public class FlashcardProgressRequest {
     @NotNull(message = "isKnown cannot be null")
     Boolean isKnown;
     @NotNull(message = "lastReviewed cannot be null")
-    @Past(message = "lastReviewed must be in the past")
-    @JsonFormat(pattern = "yyyy-MM-dd")
+    @PastOrPresent
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     LocalDateTime lastReviewed;
     @NotNull(message = "totalXP cannot be null")
     @Min(value = 0)

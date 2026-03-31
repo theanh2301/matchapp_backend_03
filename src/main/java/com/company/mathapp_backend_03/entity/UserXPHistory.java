@@ -22,11 +22,13 @@ public class UserXPHistory {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     Integer id;
     Integer xp;
+
+    @Enumerated(EnumType.STRING)
     Source source;
     Integer sourcedId;
     LocalDateTime EarnedAt;
 
-    @OneToOne
+    @ManyToOne
     @JoinColumn(name = "user_id")
     User user;
 }

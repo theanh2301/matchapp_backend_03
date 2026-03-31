@@ -1,11 +1,14 @@
 package com.company.mathapp_backend_03.rest;
 
 import com.company.mathapp_backend_03.model.request.FlashcardProgressRequest;
+import com.company.mathapp_backend_03.model.response.ApiResponse;
 import com.company.mathapp_backend_03.model.response.FlashcardProgressResponse;
 import com.company.mathapp_backend_03.model.response.UserXPHistoryResponse;
 import com.company.mathapp_backend_03.service.FlashcardProgressService;
+import jakarta.persistence.EntityNotFoundException;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -14,7 +17,7 @@ import java.util.List;
 import java.util.Map;
 
 @RestController
-@RequestMapping("/api/flashcard_progress")
+@RequestMapping("/api/flashcards")
 @RequiredArgsConstructor
 public class FlashcardProgressApi {
     private final FlashcardProgressService flashcardProgressService;
@@ -37,25 +40,48 @@ public class FlashcardProgressApi {
         return ResponseEntity.ok("Progress updated successfully");
     }
 
-
     @PostMapping("/progress")
-    public ResponseEntity<Map<String, Object>> submitFlashcardProgress(@RequestBody FlashcardProgressRequest request) {
+    public ResponseEntity<ApiResponse<UserXPHistoryResponse>> submitFlashcardProgress(
+            @RequestBody FlashcardProgressRequest request) {
 
-        // Gọi service xử lý logic và cộng điểm
-        UserXPHistoryResponse xpResponse = flashcardProgressService.processFlashcardStudy(request);
+        ApiResponse<UserXPHistoryResponse> response = new ApiResponse<>();
 
-        Map<String, Object> response = new HashMap<>();
+        try {
+            // Gọi logic xử lý từ Service
+            UserXPHistoryResponse result = flashcardProgressService.processFlashcardStudy(request);
 
-        if (xpResponse == null) {
-            // Trả về 200 OK nhưng báo cho Flutter biết là không có XP mới
-            response.put("message", "Đã lưu tiến độ thẻ. Không nhận thêm XP.");
-            response.put("data", null);
-        } else {
-            // Có XP mới được cộng
-            response.put("message", "Học thẻ thành công! Bạn nhận được điểm thưởng.");
-            response.put("data", xpResponse);
+            // Đóng gói thành công
+            response.setStatus(HttpStatus.OK.value()); // 200
+
+            if (result.getXp() > 0) {
+                response.setMessage("Đã lưu tiến độ thẻ. Nhận được " + result.getXp() + " XP!");
+            } else {
+                response.setMessage("Đã lưu tiến độ thẻ. Không nhận thêm XP.");
+            }
+            response.setData(result);
+
+            return ResponseEntity.ok(response);
+
+        } catch (EntityNotFoundException e) {
+            // Lỗi không tìm thấy User hoặc Flashcard (404)
+            response.setStatus(HttpStatus.NOT_FOUND.value());
+            response.setMessage(e.getMessage());
+            response.setData(null);
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
+
+        } catch (IllegalStateException e) {
+            // Lỗi thao tác quá nhanh hoặc vi phạm dữ liệu (400)
+            response.setStatus(HttpStatus.BAD_REQUEST.value());
+            response.setMessage(e.getMessage());
+            response.setData(null);
+            return ResponseEntity.badRequest().body(response);
+
+        } catch (Exception e) {
+            // Các lỗi hệ thống khác (500)
+            response.setStatus(HttpStatus.INTERNAL_SERVER_ERROR.value());
+            response.setMessage("Lỗi hệ thống: " + e.getMessage());
+            response.setData(null);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
         }
-
-        return ResponseEntity.ok(response);
     }
 }
