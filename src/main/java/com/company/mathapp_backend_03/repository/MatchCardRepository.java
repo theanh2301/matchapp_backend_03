@@ -27,4 +27,5 @@ public interface MatchCardRepository extends JpaRepository<MatchCard, Integer> {
     );
 
 
+    List<MatchCard> findByLesson(Lesson lesson);
 }

@@ -23,8 +23,8 @@ public class MatchCardResult {
     Integer totalXP;
 
     @ManyToOne
-    @JoinColumn(name = "match_card_id")
-    MatchCard matchCard;
+    @JoinColumn(name = "lesson_id")
+    Lesson lesson;
 
     @ManyToOne
     @JoinColumn(name = "user_id")

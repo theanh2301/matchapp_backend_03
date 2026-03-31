@@ -1,6 +1,8 @@
 package com.company.mathapp_backend_03.service;
 
 import com.company.mathapp_backend_03.entity.*;
+import com.company.mathapp_backend_03.exception.BadRequestException;
+import com.company.mathapp_backend_03.exception.NotFoundException;
 import com.company.mathapp_backend_03.model.enums.Source;
 import com.company.mathapp_backend_03.model.request.MatchCardResultRequest;
 import com.company.mathapp_backend_03.model.response.MatchCardResultResponse;
@@ -24,8 +26,9 @@ public class MatchCardResultService {
     private final UserRepository userRepository;
     private final UserXPHistoryRepository historyRepository;
     private final UserStatRepository userStatRepository;
+    private final LessonRepository lessonRepository;
 
-    public MatchCardResultResponse getMatchCardResult(Integer matchCardId, Integer userId) {
+    /*public MatchCardResultResponse getMatchCardResult(Integer matchCardId, Integer userId) {
         Optional<MatchCardResult> matchCardResults = matchCardResultRepository.findByMatchCardIdAndUserId(matchCardId, userId);
 
         if (matchCardResults.isEmpty()) {
@@ -41,9 +44,9 @@ public class MatchCardResultService {
                         matchCardResult.getTimeTaken(),
                         matchCardResult.getTotalXP()
                 );
-    }
+    }*/
 
-    @Transactional
+   /* @Transactional
     public void addOrUpdateMatchCardResult(MatchCardResultRequest matchCardResultRequest) {
 
         MatchCard matchCard = matchCardRepository.findById(matchCardResultRequest.getMatchCardId())
@@ -78,24 +81,39 @@ public class MatchCardResultService {
         } catch (DataIntegrityViolationException e) {
             throw new IllegalStateException("Operation too fast, progress is being processed.");
         }
-    }
+    }*/
 
     @Transactional
     public UserXPHistoryResponse processMatchCardResult(MatchCardResultRequest request) {
 
         if (request.getCorrectPairs() > request.getTotalPairs()) {
-            throw new IllegalArgumentException("Số cặp đúng không thể lớn hơn tổng số cặp.");
+            throw new BadRequestException("Correct pairs cannot exceed total pairs");
+        }
+
+        if (request.getCorrectPairs() < 0) {
+            throw new BadRequestException("Correct pairs invalid");
+        }
+
+        if (request.getTimeTaken() <= 0) {
+            throw new BadRequestException("Time taken must be > 0");
         }
 
         User user = userRepository.findById(request.getUserId())
-                .orElseThrow(() -> new EntityNotFoundException("Không tìm thấy User"));
+                .orElseThrow(() -> new NotFoundException("User not found"));
 
-        MatchCard matchCard = matchCardRepository.findById(request.getMatchCardId())
-                .orElseThrow(() -> new EntityNotFoundException("Không tìm thấy MatchCard"));
+        Lesson lesson = lessonRepository.findById(request.getLessonId())
+                .orElseThrow(() -> new NotFoundException("Lesson not found"));
 
-        // 1. Tìm lịch sử chơi cũ để lấy kỷ lục cũ (Chống gian lận và ghi đè)
+        List<MatchCard> cards = matchCardRepository.findByLesson(lesson);
+
+        if (cards.isEmpty()) {
+            throw new BadRequestException("Lesson has no match cards");
+        }
+
+        int xpPerPair = cards.get(0).getXpReward();
+
         MatchCardResult existingResult = matchCardResultRepository
-                .findByMatchCardAndUser(matchCard, user)
+                .findByLessonAndUser(lesson, user)
                 .orElse(null);
 
         int previousBestPairs = (existingResult != null && existingResult.getCorrectPairs() != null)
@@ -103,46 +121,53 @@ public class MatchCardResultService {
 
         int newCorrectPairs = request.getCorrectPairs();
 
-        // 2. Chỉ tính XP cho những cặp MỚI ghép đúng (Vá lỗi Infinite XP)
         int earnedXp = 0;
         if (newCorrectPairs > previousBestPairs) {
             int newlySolvedPairs = newCorrectPairs - previousBestPairs;
-            earnedXp = newlySolvedPairs * matchCard.getXpReward();
+            earnedXp = newlySolvedPairs * xpPerPair;
         }
 
         try {
-            // 3. Truyền existingResult xuống để xử lý cập nhật
-            updateMatchCardResultRecord(user, matchCard, request, existingResult, earnedXp);
+            updateMatchCardResultRecord(user, lesson, request, existingResult, earnedXp);
 
             UserXPHistory history = null;
             if (earnedXp > 0) {
-                history = addXpHistory(user, earnedXp, matchCard.getId());
+                history = addXpHistory(user, earnedXp, lesson.getId());
                 updateUserStats(user, earnedXp);
             }
 
             return history != null ? mapToResponse(history) : null;
 
         } catch (DataIntegrityViolationException e) {
-            throw new IllegalStateException("Thao tác quá nhanh, dữ liệu đang được xử lý.");
+            throw new IllegalStateException("Request processed too quickly");
         }
     }
 
-    private void updateMatchCardResultRecord(User user, MatchCard matchCard, MatchCardResultRequest request, MatchCardResult existingResult, int earnedXp) {
+    private void updateMatchCardResultRecord(User user,
+                                             Lesson lesson,
+                                             MatchCardResultRequest request,
+                                             MatchCardResult existingResult,
+                                             int earnedXp) {
+
         MatchCardResult result = existingResult != null ? existingResult : new MatchCardResult();
 
         if (existingResult == null) {
-            result.setMatchCard(matchCard);
+            result.setLesson(lesson);
             result.setUser(user);
             result.setTotalXP(0);
             result.setTotalPairs(request.getTotalPairs());
             result.setCorrectPairs(request.getCorrectPairs());
             result.setTimeTaken(request.getTimeTaken());
         } else {
+            // Update best score
             if (request.getCorrectPairs() > result.getCorrectPairs()) {
                 result.setCorrectPairs(request.getCorrectPairs());
                 result.setTimeTaken(request.getTimeTaken());
             }
-            else if (request.getCorrectPairs().equals(result.getCorrectPairs()) && request.getTimeTaken() < result.getTimeTaken()) {
+            // Same score → lấy time tốt hơn
+            else if (request.getCorrectPairs().equals(result.getCorrectPairs())
+                    && request.getTimeTaken() < result.getTimeTaken()) {
+
                 result.setTimeTaken(request.getTimeTaken());
             }
         }
@@ -153,18 +178,20 @@ public class MatchCardResultService {
         matchCardResultRepository.save(result);
     }
 
-    private UserXPHistory addXpHistory(User user, int xp, int matchCardId) {
+    private UserXPHistory addXpHistory(User user, int xp, int lessonId) {
+
         UserXPHistory history = new UserXPHistory();
         history.setUser(user);
         history.setXp(xp);
-        history.setSource(Source.MATCH_CARD_GAME); // Phân biệt với FLASHCARD
-        history.setSourcedId(matchCardId);
+        history.setSource(Source.MATCH_CARD_GAME);
+        history.setSourcedId(lessonId);
         history.setEarnedAt(LocalDateTime.now());
 
         return historyRepository.save(history);
     }
 
     private void updateUserStats(User user, int earnedXp) {
+
         UserStat stats = userStatRepository.findById(user.getId())
                 .orElseGet(() -> {
                     UserStat newStats = new UserStat();
@@ -173,19 +200,23 @@ public class MatchCardResultService {
                     return newStats;
                 });
 
-        int currentTotalXp = stats.getTotalXP() != null ? stats.getTotalXP() : 0;
-        stats.setTotalXP(currentTotalXp + earnedXp);
+        int currentXP = stats.getTotalXP() != null ? stats.getTotalXP() : 0;
+        stats.setTotalXP(currentXP + earnedXp);
+
         userStatRepository.save(stats);
     }
 
     private UserXPHistoryResponse mapToResponse(UserXPHistory entity) {
+
         UserXPHistoryResponse response = new UserXPHistoryResponse();
+
         response.setId(entity.getId());
-        if (entity.getUser() != null) response.setUserId(entity.getUser().getId());
+        response.setUserId(entity.getUser().getId());
         response.setXp(entity.getXp());
         response.setSource(entity.getSource().name());
         response.setSourceId(entity.getSourcedId());
         response.setEarnedAt(entity.getEarnedAt());
+
         return response;
     }
 }

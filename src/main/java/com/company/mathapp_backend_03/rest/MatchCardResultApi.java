@@ -16,12 +16,12 @@ import java.util.List;
 import java.util.Map;
 
 @RestController
-@RequestMapping("/api/match_card_result")
+@RequestMapping("/api/match_cards")
 @RequiredArgsConstructor
 public class MatchCardResultApi {
     private final MatchCardResultService matchCardResultService;
 
-    @GetMapping("/{userId}/{matchCardId}")
+    /*@GetMapping("/{userId}/{matchCardId}")
     public ResponseEntity<MatchCardResultResponse> getMatchCardResult(@PathVariable Integer userId,
                                                             @PathVariable Integer matchCardId) {
 
@@ -32,13 +32,13 @@ public class MatchCardResultApi {
         }
 
         return ResponseEntity.ok(response);
-    }
+    }*/
 
-    @PostMapping("/save")
+    /*@PostMapping("/save")
     public ResponseEntity<?> saveResult(@Valid @RequestBody MatchCardResultRequest matchCardResultRequest) {
         matchCardResultService.addOrUpdateMatchCardResult(matchCardResultRequest);
         return ResponseEntity.ok("Result updated successfully");
-    }
+    }*/
 
     @PostMapping("/progress")
     public ResponseEntity<Map<String, Object>> submitMatchCardResult(@RequestBody MatchCardResultRequest request) {

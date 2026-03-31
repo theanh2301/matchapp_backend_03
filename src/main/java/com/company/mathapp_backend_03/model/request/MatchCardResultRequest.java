@@ -18,10 +18,10 @@ public class MatchCardResultRequest {
     Integer correctPairs;
     @NotNull(message = "timeTaken cannot be null")
     Integer timeTaken;
-    @NotNull(message = "totalXP cannot be null")
     Integer totalXP;
-    @NotNull(message = "matchCardId cannot be null")
-    Integer matchCardId;
     @NotNull(message = "userId cannot be null")
     Integer userId;
+    @NotNull(message = "lessonId cannot be null")
+    Integer lessonId;
+
 }
