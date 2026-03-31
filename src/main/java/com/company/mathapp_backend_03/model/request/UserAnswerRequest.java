@@ -22,7 +22,7 @@ public class UserAnswerRequest {
     @NotNull(message = "answeredAT cannot be null")
     LocalDateTime answeredAt;
     @NotNull(message = "totalXp cannot be null")
-    @Min(value = 5, message = "XP reward must be greater than 0")
+    @Min(value = 0, message = "XP reward must be greater than 0")
     Integer totalXP;
     @NotNull(message = "userId cannot be null")
     Integer userId;
