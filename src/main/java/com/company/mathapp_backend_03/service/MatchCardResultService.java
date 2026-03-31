@@ -28,7 +28,7 @@ public class MatchCardResultService {
     private final UserStatRepository userStatRepository;
     private final LessonRepository lessonRepository;
 
-    /*public MatchCardResultResponse getMatchCardResult(Integer matchCardId, Integer userId) {
+   /* public MatchCardResultResponse getMatchCardResult(Integer matchCardId, Integer userId) {
         Optional<MatchCardResult> matchCardResults = matchCardResultRepository.findByMatchCardIdAndUserId(matchCardId, userId);
 
         if (matchCardResults.isEmpty()) {
@@ -44,8 +44,8 @@ public class MatchCardResultService {
                         matchCardResult.getTimeTaken(),
                         matchCardResult.getTotalXP()
                 );
-    }*/
-
+    }
+*/
    /* @Transactional
     public void addOrUpdateMatchCardResult(MatchCardResultRequest matchCardResultRequest) {
 
