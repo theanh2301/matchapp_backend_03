@@ -1,11 +1,10 @@
 package com.company.mathapp_backend_03.rest;
 
-import com.company.mathapp_backend_03.model.enums.Difficulty;
+import com.company.mathapp_backend_03.model.request.PracticeQuestionRequest;
 import com.company.mathapp_backend_03.model.response.ApiResponse;
 import com.company.mathapp_backend_03.model.response.PracticeQuestionResponse;
-import com.company.mathapp_backend_03.model.response.QuizQuestionResponse;
-import com.company.mathapp_backend_03.repository.PracticeQuestionRepository;
 import com.company.mathapp_backend_03.service.PracticeQuestionService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -32,5 +31,26 @@ public class PracticeQuestionApi {
         );
 
         return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/answers")
+    public ResponseEntity<?> addQuestionAndAnswer(@Valid @RequestBody PracticeQuestionRequest practiceQuestionRequest) {
+        practiceQuestionService.addQuestionAndAnswer(practiceQuestionRequest);
+        return ResponseEntity.ok("Question and answer created successfully");
+    }
+
+    @PutMapping("/{id}/answers")
+    public ResponseEntity<?> updateQuestionAndQuestion(@PathVariable Integer id,
+                                                       @Valid @RequestBody PracticeQuestionRequest practiceQuestionRequest) {
+        practiceQuestionService.updateQuestionAndAnswer(id, practiceQuestionRequest);
+
+        return ResponseEntity.ok("Question and answer updated successfully");
+    }
+
+    @DeleteMapping("/{id}/answers")
+    public ResponseEntity<?> deleteQuestionAndAnswer(@PathVariable Integer id) {
+        practiceQuestionService.deleteQuestionAnswer(id);
+
+        return ResponseEntity.ok("Question and answer deleted successfully");
     }
 }
