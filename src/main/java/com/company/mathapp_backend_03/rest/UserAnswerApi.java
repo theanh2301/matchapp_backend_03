@@ -16,7 +16,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 @RestController
-@RequestMapping("/api/user-answers")
+@RequestMapping("/api/quiz")
 @RequiredArgsConstructor
 public class UserAnswerApi {
 
@@ -58,21 +58,41 @@ public class UserAnswerApi {
         }
     }
 
-    @PostMapping("/answer")
-    public ResponseEntity<Map<String, Object>> submitUserAnswerXp(@RequestBody UserAnswerRequest request) {
+    @PostMapping("/progress")
+    public ResponseEntity<?> submitUserAnswerXp(@RequestBody UserAnswerRequest request) {
 
-        UserXPHistoryResponse xpResponse = userAnswerService.processUserAnswer(request);
+        try {
+            UserXPHistoryResponse xpResponse = userAnswerService.processUserAnswer(request);
 
-        Map<String, Object> response = new HashMap<>();
+            Map<String, Object> response = new HashMap<>();
 
-        if (xpResponse == null) {
-            response.put("message", "Đã lưu câu trả lời.");
-            response.put("data", null);
-        } else {
-            response.put("message", "Trả lời chính xác! Bạn được cộng XP.");
+            if (xpResponse.getXp() == 0) {
+                response.put("message", "Câu trả lời đã được lưu (không có XP).");
+            } else {
+                response.put("message", "Trả lời chính xác! Bạn được cộng XP.");
+            }
+
             response.put("data", xpResponse);
-        }
 
-        return ResponseEntity.ok(response);
+            return ResponseEntity.ok(response);
+
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of(
+                    "status", 400,
+                    "error", e.getMessage()
+            ));
+
+        } catch (EntityNotFoundException e) {
+            return ResponseEntity.status(404).body(Map.of(
+                    "status", 404,
+                    "error", e.getMessage()
+            ));
+
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body(Map.of(
+                    "status", 500,
+                    "error", "Internal Server Error"
+            ));
+        }
     }
 }

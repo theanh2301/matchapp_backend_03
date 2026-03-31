@@ -89,76 +89,94 @@ public class UserAnswerService {
     @Transactional
     public UserXPHistoryResponse processUserAnswer(UserAnswerRequest request) {
 
-        QuizQuestion quizQuestion = quizQuestionRepository.findById(request.getQuestionId())
+        QuizQuestion question = quizQuestionRepository.findById(request.getQuestionId())
                 .orElseThrow(() -> new EntityNotFoundException("Không tìm thấy Question"));
 
-        QuizAnswer quizAnswer = quizAnswerRepository.findById(request.getAnswerId())
+        QuizAnswer answer = quizAnswerRepository.findById(request.getAnswerId())
                 .orElseThrow(() -> new EntityNotFoundException("Không tìm thấy Answer"));
 
         User user = userRepository.findById(request.getUserId())
                 .orElseThrow(() -> new EntityNotFoundException("Không tìm thấy User"));
 
-        if (!quizAnswer.getQuizQuestion().getId().equals(quizQuestion.getId())) {
-            throw new IllegalArgumentException("Câu trả lời này không thuộc về câu hỏi được yêu cầu.");
+        // validate
+        if (!answer.getQuizQuestion().getId().equals(question.getId())) {
+            throw new IllegalArgumentException("Answer không thuộc Question");
         }
 
-        UserAnswer existingUserAnswer = userAnswerRepository
-                .findByUserAndQuizQuestion(user, quizQuestion)
+        // ⚠️ nên dùng lock nếu có thể
+        UserAnswer existing = userAnswerRepository
+                .findByUserAndQuizQuestion(user, question)
                 .orElse(null);
 
-        boolean isCorrect = quizAnswer.getIsCorrect();
-        int earnedXp = 0;
+        boolean isCorrect = Boolean.TRUE.equals(answer.getIsCorrect());
 
-        boolean isFirstTimeCorrect = isCorrect && (existingUserAnswer == null || !existingUserAnswer.getIsCorrect());
-
-        if (isFirstTimeCorrect) {
-            earnedXp = quizQuestion.getXpReward();
+        // ❗ nếu đã đúng trước đó → block luôn
+        if (existing != null && Boolean.TRUE.equals(existing.getIsCorrect())) {
+            return buildNoXpResponse(user.getId(), question.getId());
         }
 
+        // ✅ xác định lần đầu đúng
+        boolean isFirstTimeCorrect = isCorrect &&
+                (existing == null || !Boolean.TRUE.equals(existing.getIsCorrect()));
+
+        int earnedXp = isFirstTimeCorrect ? question.getXpReward() : 0;
+
         try {
-            updateUserAnswerRecord(user, quizQuestion, quizAnswer, existingUserAnswer, isCorrect);
+            // 🔥 update answer TRƯỚC
+            UserAnswer saved = saveOrUpdateUserAnswer(user, question, answer, existing, isCorrect, earnedXp);
 
             UserXPHistory history = null;
+
+            // 🔥 chỉ cộng XP khi first-time correct
             if (earnedXp > 0) {
-                history = addXpHistory(user, earnedXp, quizQuestion.getId());
+                history = addXpHistory(user, earnedXp, question.getId());
                 updateUserStats(user, earnedXp);
             }
 
-            return history != null ? mapToResponse(history) : null;
+            return buildResponse(history, earnedXp, user.getId(), question.getId());
 
         } catch (DataIntegrityViolationException e) {
-            throw new IllegalStateException("Thao tác quá nhanh, tiến độ đang được xử lý.");
+            throw new IllegalStateException("Spam click detected, thử lại");
         }
     }
 
-    private void updateUserAnswerRecord(User user, QuizQuestion quizQuestion, QuizAnswer quizAnswer, UserAnswer existingRecord, boolean isCorrect) {
-        UserAnswer userAnswer = existingRecord != null ? existingRecord : new UserAnswer();
+    private UserAnswer saveOrUpdateUserAnswer(User user,
+                                              QuizQuestion question,
+                                              QuizAnswer answer,
+                                              UserAnswer existing,
+                                              boolean isCorrect,
+                                              int earnedXp) {
 
-        userAnswer.setUser(user);
-        userAnswer.setQuizQuestion(quizQuestion);
-        userAnswer.setQuizAnswer(quizAnswer);
-        userAnswer.setIsCorrect(isCorrect);
-        userAnswer.setAnsweredAt(LocalDateTime.now());
-
-        if (existingRecord != null && existingRecord.getIsCorrect() != null && existingRecord.getIsCorrect()) {
-
-        } else {
-            userAnswer.setIsCorrect(isCorrect);
-            if (isCorrect) {
-                userAnswer.setTotalXP(quizQuestion.getXpReward());
-            } else {
-                userAnswer.setTotalXP(0);
-            }
+        // ❗ nếu đã đúng → không update
+        if (existing != null && Boolean.TRUE.equals(existing.getIsCorrect())) {
+            return existing;
         }
 
-        userAnswerRepository.save(userAnswer);
+        UserAnswer entity = (existing != null) ? existing : new UserAnswer();
+
+        entity.setUser(user);
+        entity.setQuizQuestion(question);
+        entity.setQuizAnswer(answer);
+
+        entity.setAnsweredAt(LocalDateTime.now());
+        entity.setIsCorrect(isCorrect);
+
+        // 🔥 CHỈ set XP khi được cộng
+        if (earnedXp > 0) {
+            entity.setTotalXP(earnedXp);
+        } else if (existing == null) {
+            entity.setTotalXP(0);
+        }
+        // ❗ KHÔNG reset về 0 nếu đã từng đúng
+
+        return userAnswerRepository.save(entity);
     }
 
     private UserXPHistory addXpHistory(User user, int xp, int questionId) {
         UserXPHistory history = new UserXPHistory();
         history.setUser(user);
         history.setXp(xp);
-        history.setSource(Source.QUIZ_GAME); // Phân biệt nguồn XP từ làm trắc nghiệm
+        history.setSource(Source.QUIZ_GAME);
         history.setSourcedId(questionId);
         history.setEarnedAt(LocalDateTime.now());
 
@@ -166,27 +184,53 @@ public class UserAnswerService {
     }
 
     private void updateUserStats(User user, int earnedXp) {
+
         UserStat stats = userStatRepository.findById(user.getId())
                 .orElseGet(() -> {
-                    UserStat newStats = new UserStat();
-                    newStats.setUserId(user.getId());
-                    newStats.setTotalXP(0);
-                    return newStats;
+                    UserStat s = new UserStat();
+                    s.setUser(user);
+                    s.setTotalXP(0);
+                    s.setTotalLesson(0);
+                    s.setStreakDay(0);
+                    s.setLastStudyDate(LocalDateTime.now());
+                    return s;
                 });
 
-        int currentTotalXp = stats.getTotalXP() != null ? stats.getTotalXP() : 0;
-        stats.setTotalXP(currentTotalXp + earnedXp);
+        stats.setTotalXP((stats.getTotalXP() == null ? 0 : stats.getTotalXP()) + earnedXp);
+
         userStatRepository.save(stats);
     }
 
-    private UserXPHistoryResponse mapToResponse(UserXPHistory entity) {
-        UserXPHistoryResponse response = new UserXPHistoryResponse();
-        response.setId(entity.getId());
-        if (entity.getUser() != null) response.setUserId(entity.getUser().getId());
-        response.setXp(entity.getXp());
-        response.setSource(entity.getSource().name());
-        response.setSourceId(entity.getSourcedId());
-        response.setEarnedAt(entity.getEarnedAt());
-        return response;
+    private UserXPHistoryResponse buildResponse(UserXPHistory history,
+                                                int earnedXp,
+                                                Integer userId,
+                                                Integer questionId) {
+
+        UserXPHistoryResponse res = new UserXPHistoryResponse();
+
+        res.setUserId(userId);
+        res.setXp(earnedXp);
+        res.setSource("QUIZ_GAME");
+        res.setSourceId(questionId);
+        res.setEarnedAt(LocalDateTime.now());
+
+        if (history != null) {
+            res.setId(history.getId());
+        }
+
+        return res;
+    }
+
+    private UserXPHistoryResponse buildNoXpResponse(Integer userId, Integer questionId) {
+
+        UserXPHistoryResponse res = new UserXPHistoryResponse();
+
+        res.setUserId(userId);
+        res.setXp(0);
+        res.setSource("QUIZ_GAME");
+        res.setSourceId(questionId);
+        res.setEarnedAt(LocalDateTime.now());
+
+        return res;
     }
 }
