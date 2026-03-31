@@ -1,6 +1,6 @@
 package com.company.mathapp_backend_03.rest;
 
-import com.company.mathapp_backend_03.model.request.MatchCardRequest;
+import com.company.mathapp_backend_03.model.request.MatchCardPairRequest;
 import com.company.mathapp_backend_03.model.response.ApiResponse;
 import com.company.mathapp_backend_03.model.response.MatchCardResponse;
 import com.company.mathapp_backend_03.service.MatchCardService;
@@ -32,22 +32,30 @@ public class MatchCardApi {
     }
 
     @PostMapping
-    public ResponseEntity<?> addMatchCard(@Valid @RequestBody MatchCardRequest matchCardRequest) {
-        matchCardService.addMatchCard(matchCardRequest);
+    public ResponseEntity<?> addMatchCardPair(
+            @Valid @RequestBody MatchCardPairRequest request) {
 
-        return ResponseEntity.ok("MatchCard created successfully");
+        matchCardService.addMatchCardPair(request);
+
+        return ResponseEntity.ok("MatchCard pair created successfully");
     }
 
-    @PutMapping("/{id}")
-    public ResponseEntity<?> updateMatchCard(@PathVariable Integer id,
-                                            @Valid @RequestBody MatchCardRequest matchCardRequest) {
-        matchCardService.updateMatchCard(id,matchCardRequest);
-        return ResponseEntity.ok("MatchCard updated successfully");
+    @PutMapping
+    public ResponseEntity<?> updateMatchCardPair(
+            @Valid @RequestBody MatchCardPairRequest request) {
+
+        matchCardService.updateMatchCardPair(request);
+
+        return ResponseEntity.ok("MatchCard pair updated successfully");
     }
 
-    @DeleteMapping("/{id}")
-    public ResponseEntity<?> deleteMatchCard(@PathVariable Integer id) {
-        matchCardService.deleteMatchCard(id);
-        return ResponseEntity.ok("MatchCard deleted successfully");
+    @DeleteMapping
+    public ResponseEntity<?> deleteMatchCardPair(
+            @RequestParam Integer pairId,
+            @RequestParam Integer lessonId) {
+
+        matchCardService.deleteMatchCardPair(pairId, lessonId);
+
+        return ResponseEntity.ok("MatchCard pair deleted successfully");
     }
 }

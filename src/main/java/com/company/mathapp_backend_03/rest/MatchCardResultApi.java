@@ -40,7 +40,7 @@ public class MatchCardResultApi {
         return ResponseEntity.ok("Result updated successfully");
     }
 
-    @PostMapping("/result")
+    @PostMapping("/progress")
     public ResponseEntity<Map<String, Object>> submitMatchCardResult(@RequestBody MatchCardResultRequest request) {
 
         UserXPHistoryResponse xpResponse = matchCardResultService.processMatchCardResult(request);

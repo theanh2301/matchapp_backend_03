@@ -16,7 +16,15 @@ public interface MatchCardRepository extends JpaRepository<MatchCard, Integer> {
 
     List<MatchCard> findByLessonId(Integer id);
 
-    Optional<MatchCard> findByPairIdAndContentAndLesson(Integer pairId, String content, Lesson lesson);
+    List<MatchCard> findByPairIdAndLesson(Integer pairId, Lesson lesson);
 
-    boolean existsByPairIdAndContentAndLessonAndIdNot(@NotNull(message = "pairId cannot be null") Integer pairId, @NotBlank(message = "content cannot be empty") String content, Lesson lesson, Integer id);
+    boolean existsByContentAndLesson(String content, Lesson lesson);
+
+    boolean existsByContentAndLessonAndPairIdNot(
+            String content,
+            Lesson lesson,
+            Integer pairId
+    );
+
+
 }

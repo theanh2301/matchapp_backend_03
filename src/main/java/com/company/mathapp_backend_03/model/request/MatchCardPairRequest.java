@@ -12,13 +12,19 @@ import lombok.experimental.FieldDefaults;
 @NoArgsConstructor
 @AllArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
-public class MatchCardRequest {
+public class MatchCardPairRequest {
     @NotNull(message = "pairId cannot be null")
     Integer pairId;
-    @NotBlank(message = "content cannot be empty")
-    String content;
+
+    @NotBlank(message = "content1 cannot be empty")
+    String content1;
+
+    @NotBlank(message = "content2 cannot be empty")
+    String content2;
+
     @NotNull(message = "xpReward cannot be null")
     Integer xpReward;
+
     @NotNull(message = "lessonId cannot be null")
     Integer lessonId;
 }

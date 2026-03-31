@@ -5,16 +5,16 @@ import com.company.mathapp_backend_03.entity.MatchCard;
 import com.company.mathapp_backend_03.exception.BadRequestException;
 import com.company.mathapp_backend_03.exception.ConflictException;
 import com.company.mathapp_backend_03.exception.NotFoundException;
-import com.company.mathapp_backend_03.model.request.MatchCardRequest;
+import com.company.mathapp_backend_03.model.request.MatchCardPairRequest;
 import com.company.mathapp_backend_03.model.response.MatchCardResponse;
 import com.company.mathapp_backend_03.repository.LessonRepository;
 import com.company.mathapp_backend_03.repository.MatchCardRepository;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.Objects;
-import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -33,70 +33,119 @@ public class MatchCardService {
         )).toList();
     }
 
-    public void addMatchCard(MatchCardRequest matchCardRequest) {
+    @Transactional
+    public void addMatchCardPair(MatchCardPairRequest request) {
 
-        Lesson lesson = lessonRepository.findById(matchCardRequest.getLessonId())
+        Lesson lesson = lessonRepository.findById(request.getLessonId())
                 .orElseThrow(() -> new BadRequestException("Lesson not found"));
 
-        Optional<MatchCard> existingMatchGame = matchCardRepository.findByPairIdAndContentAndLesson(
-                matchCardRequest.getPairId(),
-                matchCardRequest.getContent(),
-                lesson
-            );
+        // 1. Kiểm tra đã tồn tại pairId chưa
+        List<MatchCard> existingCards = matchCardRepository
+                .findByPairIdAndLesson(request.getPairId(), lesson);
 
-        if (existingMatchGame.isPresent()) {
-            throw new BadRequestException("MatchCard already exists in this lesson");
+        if (existingCards.size() >= 2) {
+            throw new BadRequestException("This pairId already has 2 cards");
         }
 
-        MatchCard matchCard = MatchCard.builder()
-                .pairId(matchCardRequest.getPairId())
-                .content(matchCardRequest.getContent())
-                .xpReward(matchCardRequest.getXpReward())
+        // 2. Không cho content trùng nhau
+        if (request.getContent1().equalsIgnoreCase(request.getContent2())) {
+            throw new BadRequestException("Two cards in a pair must be different");
+        }
+
+        // 3. Không cho trùng content trong lesson
+        boolean content1Exists = matchCardRepository
+                .existsByContentAndLesson(request.getContent1(), lesson);
+
+        boolean content2Exists = matchCardRepository
+                .existsByContentAndLesson(request.getContent2(), lesson);
+
+        if (content1Exists || content2Exists) {
+            throw new BadRequestException("Content already exists in this lesson");
+        }
+
+        // 4. Tạo 2 thẻ
+        MatchCard card1 = MatchCard.builder()
+                .pairId(request.getPairId())
+                .content(request.getContent1())
+                .xpReward(request.getXpReward())
                 .lesson(lesson)
                 .build();
 
-        matchCardRepository.save(matchCard);
+        MatchCard card2 = MatchCard.builder()
+                .pairId(request.getPairId())
+                .content(request.getContent2())
+                .xpReward(request.getXpReward())
+                .lesson(lesson)
+                .build();
+
+        matchCardRepository.saveAll(List.of(card1, card2));
     }
 
-    public void updateMatchCard(Integer id, MatchCardRequest request) {
-
-        MatchCard matchCard = matchCardRepository.findById(id)
-                .orElseThrow(() -> new NotFoundException("MatchCard not found"));
+    @Transactional
+    public void updateMatchCardPair(MatchCardPairRequest request) {
 
         Lesson lesson = lessonRepository.findById(request.getLessonId())
                 .orElseThrow(() -> new NotFoundException("Lesson not found"));
 
-        boolean isDuplicate = matchCardRepository
-                .existsByPairIdAndContentAndLessonAndIdNot(
-                        request.getPairId(),
-                        request.getContent().trim(),
-                        lesson,
-                        id
-                );
+        List<MatchCard> cards = matchCardRepository
+                .findByPairIdAndLesson(request.getPairId(), lesson);
 
-        if (isDuplicate) {
-            throw new ConflictException("MatchCard already exists in this lesson");
+        if (cards.size() != 2) {
+            throw new BadRequestException("Pair must have exactly 2 cards to update");
         }
 
-        boolean isSame = Objects.equals(matchCard.getPairId(), request.getPairId()) &&
-                         Objects.equals(matchCard.getContent(), request.getContent()) &&
-                         Objects.equals(matchCard.getLesson().getId(), lesson.getId());
+        String content1 = request.getContent1().trim();
+        String content2 = request.getContent2().trim();
+
+        if (content1.equalsIgnoreCase(content2)) {
+            throw new BadRequestException("Two cards must have different content");
+        }
+
+        boolean content1Exists = matchCardRepository
+                .existsByContentAndLessonAndPairIdNot(content1, lesson, request.getPairId());
+
+        boolean content2Exists = matchCardRepository
+                .existsByContentAndLessonAndPairIdNot(content2, lesson, request.getPairId());
+
+        if (content1Exists || content2Exists) {
+            throw new ConflictException("Content already exists in this lesson");
+        }
+
+        List<String> oldContents = cards.stream()
+                .map(MatchCard::getContent)
+                .map(String::trim)
+                .toList();
+
+        boolean isSame =
+                oldContents.contains(content1) &&
+                        oldContents.contains(content2);
 
         if (isSame) {
             throw new BadRequestException("No changes detected");
         }
 
-        matchCard.setPairId(request.getPairId());
-        matchCard.setContent(request.getContent().trim());
-        matchCard.setLesson(lesson);
-        matchCardRepository.save(matchCard);
+        cards.get(0).setContent(content1);
+        cards.get(1).setContent(content2);
+
+        cards.get(0).setXpReward(request.getXpReward());
+        cards.get(1).setXpReward(request.getXpReward());
+
+        matchCardRepository.saveAll(cards);
     }
 
-    public void deleteMatchCard(Integer id) {
+    @Transactional
+    public void deleteMatchCardPair(Integer pairId, Integer lessonId) {
 
-        MatchCard matchCard = matchCardRepository.findById(id)
-                .orElseThrow(() -> new NotFoundException("MatchCard not found"));
+        Lesson lesson = lessonRepository.findById(lessonId)
+                .orElseThrow(() -> new NotFoundException("Lesson not found"));
 
-        matchCardRepository.delete(matchCard);
+        List<MatchCard> cards = matchCardRepository
+                .findByPairIdAndLesson(pairId, lesson);
+
+        if (cards.size() != 2) {
+            throw new BadRequestException("Pair must have exactly 2 cards");
+        }
+
+        matchCardRepository.deleteAll(cards);
     }
 }
