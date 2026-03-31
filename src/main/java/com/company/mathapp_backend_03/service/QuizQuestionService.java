@@ -149,6 +149,7 @@ public class QuizQuestionService {
                 .map(item -> QuizAnswer.builder()
                         .content(item.getContent().trim())
                         .isCorrect(item.getIsCorrect())
+                        .description(item.getDescription())
                         .quizQuestion(quizQuestion)
                         .build())
                 .toList();
@@ -236,6 +237,7 @@ public class QuizQuestionService {
                 QuizAnswer existing = currentMap.get(aReq.getId());
                 existing.setContent(aReq.getContent().trim());
                 existing.setIsCorrect(aReq.getIsCorrect());
+                existing.setDescription(aReq.getDescription());
 
                 newQuizAnswers.add(existing);
                 currentMap.remove(aReq.getId());
@@ -245,6 +247,7 @@ public class QuizQuestionService {
                 QuizAnswer newA = new QuizAnswer();
                 newA.setContent(aReq.getContent().trim());
                 newA.setIsCorrect(aReq.getIsCorrect());
+                newA.setDescription(aReq.getDescription());
                 newA.setQuizQuestion(quizQuestion);
 
                 newQuizAnswers.add(newA);
