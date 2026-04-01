@@ -92,4 +92,6 @@ public interface PracticeQuestionRepository extends JpaRepository<PracticeQuesti
             @Param("practiceId") Integer practiceId,
             @Param("userId") Integer userId
     );
+
+    int countByPracticeId(Integer practiceId);
 }

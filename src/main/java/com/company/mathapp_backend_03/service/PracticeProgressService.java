@@ -16,12 +16,15 @@ import java.time.LocalDateTime;
 @Service
 @AllArgsConstructor
 public class PracticeProgressService {
+
+    private final PracticeProgressRepository practiceProgressRepository;
+    private final PracticeRepository practiceRepository;
     private final PracticeQuestionRepository practiceQuestionRepository;
     private final PracticeAnswerRepository practiceAnswerRepository;
     private final UserRepository userRepository;
     private final UserXPHistoryRepository historyRepository;
     private final UserStatRepository userStatRepository;
-    private final PracticeProgressRepository practiceProgressRepository;
+    private final UserPracticeRepository userPracticeRepository;
 
     @Transactional
     public UserXPHistoryResponse processUserAnswer(PracticeProgressRequest request) {
@@ -59,12 +62,20 @@ public class PracticeProgressService {
         int earnedXp = isFirstTimeCorrect ? question.getXpReward() : 0;
 
         try {
-            // 🔥 update answer TRƯỚC
-            PracticeProgress saved = saveOrUpdateUserPractice(user, question, answer, existing, isCorrect, earnedXp);
+            // 🔥 1. Lưu progress trước
+            PracticeProgress saved = saveOrUpdateUserPractice(
+                    user, question, answer, existing, isCorrect, earnedXp
+            );
+
+            // 🔥 2. UPDATE USER PRACTICE (ĐẶT Ở ĐÂY)
+            updateUserPractice(
+                    question.getPractice().getId(),
+                    user.getId()
+            );
 
             UserXPHistory history = null;
 
-            // 🔥 chỉ cộng XP khi first-time correct
+            // 🔥 3. Cộng XP nếu lần đầu đúng
             if (earnedXp > 0) {
                 history = addXpHistory(user, earnedXp, question.getId());
                 updateUserStats(user, earnedXp);
@@ -75,6 +86,7 @@ public class PracticeProgressService {
         } catch (DataIntegrityViolationException e) {
             throw new IllegalStateException("Spam click detected, thử lại");
         }
+
     }
 
     private PracticeProgress saveOrUpdateUserPractice(User user,
@@ -137,6 +149,37 @@ public class PracticeProgressService {
 
         userStatRepository.save(stats);
     }
+
+    @Transactional
+    public void updateUserPractice(Integer practiceId, Integer userId) {
+
+        Integer totalXp = practiceProgressRepository.calculateTotalXp(practiceId, userId);
+
+        int totalQuestions = practiceQuestionRepository.countByPracticeId(practiceId);
+
+        int answered = practiceProgressRepository.countAnswered(practiceId, userId);
+
+        int correct = practiceProgressRepository.countCorrect(practiceId, userId);
+
+        double percent = answered == 0 ? 0 : (correct * 100.0 / answered);
+
+        boolean isCompleted = answered >= totalQuestions && percent >= 70;
+
+        UserPractice up = userPracticeRepository
+                .findByUserIdAndPracticeId(userId, practiceId)
+                .orElseGet(UserPractice::new); // 👉 đẹp hơn
+
+        up.setUserId(userId);
+
+        Practice practiceRef = practiceRepository.getReferenceById(practiceId);
+        up.setPractice(practiceRef);
+
+        up.setTotalXp(totalXp);
+        up.setIsCompleted(isCompleted);
+
+        userPracticeRepository.save(up);
+    }
+
 
     private UserXPHistoryResponse buildResponse(UserXPHistory history,
                                                 int earnedXp,
