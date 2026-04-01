@@ -2,6 +2,7 @@ package com.company.mathapp_backend_03.repository;
 
 import com.company.mathapp_backend_03.entity.Practice;
 import com.company.mathapp_backend_03.entity.PracticeQuestion;
+import com.company.mathapp_backend_03.model.dto.WrongQuestionDetailDTO;
 import com.company.mathapp_backend_03.model.enums.Difficulty;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -44,6 +45,50 @@ public interface PracticeQuestionRepository extends JpaRepository<PracticeQuesti
     WHERE pp.is_correct = 0
 """, nativeQuery = true)
     List<PracticeQuestion> findWrongQuestions(
+            @Param("practiceId") Integer practiceId,
+            @Param("userId") Integer userId
+    );
+
+    @Query(value = """
+    SELECT
+        q.id AS questionId,
+        q.content AS questionContent,
+    
+        a_correct.id AS correctAnswerId,
+        a_correct.content AS correctAnswerContent,
+    
+        a_user.id AS userAnswerId,
+        a_user.content AS userAnswerContent,
+    
+        pp.is_correct AS isCorrect
+    
+    FROM practice_questions q
+    
+    -- lấy lần làm gần nhất của mỗi câu
+    JOIN (
+        SELECT 
+            practice_question_id,
+            MAX(answered_at) AS latest_time
+        FROM practice_progress
+        WHERE user_id = :userId
+        GROUP BY practice_question_id
+    ) latest
+        ON latest.practice_question_id = q.id
+    
+    JOIN practice_progress pp
+        ON pp.practice_question_id = latest.practice_question_id
+        AND pp.answered_at = latest.latest_time
+    
+    JOIN practice_answers a_user
+        ON a_user.id = pp.practice_answer_id
+    
+    JOIN practice_answers a_correct
+        ON a_correct.practice_question_id = q.id
+        AND a_correct.is_correct = 1
+    
+    WHERE q.practice_id = :practiceId AND pp.is_correct = 0
+""", nativeQuery = true)
+    List<WrongQuestionDetailDTO> getPracticeDetail(
             @Param("practiceId") Integer practiceId,
             @Param("userId") Integer userId
     );
