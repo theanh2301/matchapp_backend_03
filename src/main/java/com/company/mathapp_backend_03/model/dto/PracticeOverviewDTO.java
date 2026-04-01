@@ -10,4 +10,9 @@ public interface PracticeOverviewDTO {
     Difficulty getDifficulty();
     Integer getTotalQuestions();
     Integer getTotalXp();
+
+    Long getTotalAnswered();
+    Long getCorrectAnswers();
+    Double getCorrectPercent();
+
 }

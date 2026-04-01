@@ -38,12 +38,13 @@ public class PracticeApi {
     }
 
     @GetMapping("/overview")
-    public ResponseEntity<ApiResponse<List<PracticeOverviewDTO>>> getPracticeCards(
-            @RequestParam PracticeType practiceType) {
-
-        List<PracticeOverviewDTO> cards = practiceService.getPracticeOverview(practiceType);
-
-        return ResponseEntity.ok(new ApiResponse<>(200, "Lấy danh sách thành công", cards));
+    public ResponseEntity<?> getPracticeOverview(
+            @RequestParam PracticeType practiceType,
+            @RequestParam Integer userId
+    ) {
+        return ResponseEntity.ok(
+                practiceService.getPracticeOverview(practiceType, userId)
+        );
     }
 
     @PostMapping("/progress")

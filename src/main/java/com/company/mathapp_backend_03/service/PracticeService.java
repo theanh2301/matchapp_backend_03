@@ -1,7 +1,6 @@
 package com.company.mathapp_backend_03.service;
 
 import com.company.mathapp_backend_03.model.dto.PracticeOverviewDTO;
-import com.company.mathapp_backend_03.model.enums.Difficulty;
 import com.company.mathapp_backend_03.model.enums.PracticeType;
 import com.company.mathapp_backend_03.model.response.PracticeStatsResponse;
 import com.company.mathapp_backend_03.repository.PracticeRepository;
@@ -24,7 +23,9 @@ public class PracticeService {
 
         return new PracticeStatsResponse(practiceType, total, completed);
     }
-    public List<PracticeOverviewDTO> getPracticeOverview(PracticeType practiceType) {
-        return practiceRepository.getPracticeSummariesByDifficulty(practiceType);
+    public List<PracticeOverviewDTO> getPracticeOverview(PracticeType practiceType, Integer userId) {
+        return practiceRepository.getPracticeOverviewWithProgress(
+                practiceType.name(), userId
+        );
     }
 }
