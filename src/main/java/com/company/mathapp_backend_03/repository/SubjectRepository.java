@@ -21,44 +21,30 @@ public interface SubjectRepository extends JpaRepository<Subject, Integer> {
         s.subject_name AS subjectName,
         s.icon AS icon,
         
-        -- Đếm tổng số Lesson
+        -- Tổng số lesson
         (SELECT COUNT(l.id) 
          FROM lessons l 
          JOIN chapters c ON l.chapter_id = c.id 
          WHERE c.subject_id = s.id) AS totalLessons,
          
-        -- Đếm số Lesson user đã hoàn thành
+        -- Số lesson đã hoàn thành
         (SELECT COUNT(lc.id) 
          FROM lesson_completion lc 
          JOIN lessons l ON lc.lesson_id = l.id 
          JOIN chapters c ON l.chapter_id = c.id 
          WHERE c.subject_id = s.id 
            AND lc.user_id = :userId 
-           AND lc.status = 'COMPLETED') AS completedLessons,
+           AND lc.is_completed = true) AS completedLessons,
            
-        -- Tổng XP = XP Flashcard + XP Question + XP MatchCard
-        (
-            COALESCE((SELECT SUM(fp.totalxp) 
-                      FROM flashcard_progress fp 
-                      JOIN flashcards f ON fp.flashcard_id = f.id 
-                      JOIN lessons l ON f.lesson_id = l.id 
-                      JOIN chapters c ON l.chapter_id = c.id 
-                      WHERE c.subject_id = s.id AND fp.user_id = :userId), 0) 
-            +
-            COALESCE((SELECT SUM(ua.totalxp) 
-                      FROM user_answer ua 
-                      JOIN quiz_questions q ON ua.question_id = q.id 
-                      JOIN lessons l ON q.lesson_id = l.id 
-                      JOIN chapters c ON l.chapter_id = c.id 
-                      WHERE c.subject_id = s.id AND ua.user_id = :userId), 0) 
-            +
-            COALESCE((SELECT SUM(mcr.totalxp) 
-                      FROM match_card_result mcr 
-                      JOIN match_card mc ON mcr.match_card_id = mc.id 
-                      JOIN lessons l ON mc.lesson_id = l.id 
-                      JOIN chapters c ON l.chapter_id = c.id 
-                      WHERE c.subject_id = s.id AND mcr.user_id = :userId), 0)
-        ) AS totalXp
+        -- Tổng XP từ lesson_completion
+        COALESCE((
+            SELECT SUM(lc.total_xp)
+            FROM lesson_completion lc
+            JOIN lessons l ON lc.lesson_id = l.id
+            JOIN chapters c ON l.chapter_id = c.id
+            WHERE c.subject_id = s.id
+              AND lc.user_id = :userId
+        ), 0) AS totalXp
         
     FROM subjects s
     WHERE s.subject_class = :subjectClass
@@ -67,5 +53,4 @@ public interface SubjectRepository extends JpaRepository<Subject, Integer> {
             @Param("userId") Integer userId,
             @Param("subjectClass") Integer subjectClass
     );
-
 }
