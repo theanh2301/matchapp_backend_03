@@ -5,32 +5,39 @@ import lombok.*;
 import lombok.experimental.FieldDefaults;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
 @Getter
 @Setter
-@FieldDefaults(level = AccessLevel.PRIVATE)
 @Entity
 @Table(name = "lesson_completion")
 public class LessonCompletion {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    Integer id;
-    String status;
-    Float Accuracy;
-    LocalDate LastAccessed;
-    Integer TimeSpent;
-    LocalDate CompletedAt;
-
-    @ManyToOne
-    @JoinColumn(name = "lesson_id")
-    Lesson lesson;
+    private Integer id;
 
     @ManyToOne
     @JoinColumn(name = "user_id")
-    User user;
+    private User user;
 
+
+    @ManyToOne
+    @JoinColumn(name = "lesson_id")
+    private Lesson lesson;
+
+    private Integer totalXp;
+
+    private Boolean isFlashcardCompleted;
+    private Boolean isMatchCardCompleted;
+    private Boolean isQuizCompleted;
+
+    private Boolean isCompleted;
+
+    private LocalDateTime completedAt;
+    private LocalDateTime updatedAt;
 
 }
