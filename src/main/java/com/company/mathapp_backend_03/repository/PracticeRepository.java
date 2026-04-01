@@ -54,4 +54,48 @@ public interface PracticeRepository extends JpaRepository<Practice, Integer> {
             @Param("practiceType") String practiceType,
             @Param("userId") Integer userId
     );
+
+    @Query(value = """
+    SELECT 
+        p.id AS id, 
+        p.title AS title, 
+        p.description AS description, 
+        p.time_limit AS timeLimit, 
+        p.practice_type AS practiceType,
+
+        COUNT(DISTINCT q.id) AS totalQuestions, 
+        COALESCE(SUM(q.xp_reward), 0) AS totalXp,
+
+        COUNT(pp.id) AS totalAnswered,
+
+        SUM(CASE WHEN pp.is_correct = 1 THEN 1 ELSE 0 END) AS correctAnswers,
+
+        ROUND(
+            SUM(CASE WHEN pp.is_correct = 1 THEN 1 ELSE 0 END) * 100.0 / COUNT(pp.id),
+            2
+        ) AS correctPercent
+
+    FROM practice p
+
+    LEFT JOIN practice_questions q 
+        ON q.practice_id = p.id
+
+    LEFT JOIN practice_progress pp 
+        ON pp.practice_question_id = q.id
+        AND pp.user_id = :userId
+
+    GROUP BY p.id, p.title, p.description, p.time_limit, p.practice_type
+
+    HAVING 
+        COUNT(pp.id) > 0
+        AND 
+        (
+            SUM(CASE WHEN pp.is_correct = 1 THEN 1 ELSE 0 END) * 100.0 
+            / COUNT(pp.id)
+        ) < 70
+""", nativeQuery = true)
+    List<PracticeOverviewDTO> getPracticeOverviewWeak(
+            @Param("userId") Integer userId
+    );
+
 }

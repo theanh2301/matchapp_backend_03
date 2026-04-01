@@ -23,9 +23,14 @@ public class PracticeService {
 
         return new PracticeStatsResponse(practiceType, total, completed);
     }
+
     public List<PracticeOverviewDTO> getPracticeOverview(PracticeType practiceType, Integer userId) {
         return practiceRepository.getPracticeOverviewWithProgress(
                 practiceType.name(), userId
         );
+    }
+
+    public List<PracticeOverviewDTO> getPracticeOverviewWeak(Integer userId) {
+        return practiceRepository.getPracticeOverviewWeak(userId);
     }
 }

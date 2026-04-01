@@ -42,8 +42,13 @@ public class PracticeApi {
             @RequestParam PracticeType practiceType,
             @RequestParam Integer userId
     ) {
-        return ResponseEntity.ok(
-                practiceService.getPracticeOverview(practiceType, userId)
+        return ResponseEntity.ok(practiceService.getPracticeOverview(practiceType, userId)
+        );
+    }
+
+    @GetMapping("/overview/weak")
+    public ResponseEntity<?> getPracticeOverviewWeak(@RequestParam Integer userId) {
+        return ResponseEntity.ok(practiceService.getPracticeOverviewWeak(userId)
         );
     }
 
