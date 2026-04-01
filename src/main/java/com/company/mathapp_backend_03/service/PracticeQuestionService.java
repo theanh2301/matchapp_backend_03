@@ -4,6 +4,7 @@ import com.company.mathapp_backend_03.entity.*;
 import com.company.mathapp_backend_03.exception.BadRequestException;
 import com.company.mathapp_backend_03.exception.ConflictException;
 import com.company.mathapp_backend_03.exception.NotFoundException;
+import com.company.mathapp_backend_03.model.dto.WrongQuestionDetailDTO;
 import com.company.mathapp_backend_03.model.enums.Difficulty;
 import com.company.mathapp_backend_03.model.request.PracticeAnswerRequest;
 import com.company.mathapp_backend_03.model.request.PracticeQuestionRequest;
@@ -53,6 +54,10 @@ public class PracticeQuestionService {
         }).toList();
     }
 
+    public List<WrongQuestionDetailDTO> getWrongQuestionsDetail(Integer practiceId, Integer userId) {
+        return practiceQuestionRepository.getPracticeDetail(practiceId, userId);
+    }
+
     public List<PracticeQuestionResponse> getPracticeQuestionByPracticeId(Integer id) {
         List<PracticeQuestion> practiceQuestions = practiceQuestionRepository.findByPracticeId(id);
 
@@ -80,7 +85,7 @@ public class PracticeQuestionService {
         }).toList();
     }
 
-    public List<PracticeQuestionResponse> getWrongQuestions(Integer practiceId, Integer userId) {
+    public List<PracticeQuestionResponse> getWrongQuestionsForExam(Integer practiceId, Integer userId) {
 
         List<PracticeQuestion> practiceQuestions =
                 practiceQuestionRepository.findWrongQuestions(practiceId, userId);

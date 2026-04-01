@@ -33,13 +33,23 @@ public class PracticeQuestionApi {
         return ResponseEntity.ok(response);
     }
 
-    @GetMapping("/{practiceId}/wrong-questions")
+    @GetMapping("/{practiceId}/wrong-questions-exam")
+    public ResponseEntity<?> getWrongQuestionsForExam(
+            @PathVariable Integer practiceId,
+            @RequestParam Integer userId
+    ) {
+        return ResponseEntity.ok(
+                practiceQuestionService.getWrongQuestionsForExam(practiceId, userId)
+        );
+    }
+
+    @GetMapping("/{practiceId}/wrong-questions-detail")
     public ResponseEntity<?> getWrongQuestions(
             @PathVariable Integer practiceId,
             @RequestParam Integer userId
     ) {
         return ResponseEntity.ok(
-                practiceQuestionService.getWrongQuestions(practiceId, userId)
+                practiceQuestionService.getWrongQuestionsDetail(practiceId, userId)
         );
     }
 
