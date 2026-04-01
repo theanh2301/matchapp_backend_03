@@ -33,6 +33,16 @@ public class PracticeQuestionApi {
         return ResponseEntity.ok(response);
     }
 
+    @GetMapping("/{practiceId}/wrong-questions")
+    public ResponseEntity<?> getWrongQuestions(
+            @PathVariable Integer practiceId,
+            @RequestParam Integer userId
+    ) {
+        return ResponseEntity.ok(
+                practiceQuestionService.getWrongQuestions(practiceId, userId)
+        );
+    }
+
     @PostMapping("/answers")
     public ResponseEntity<?> addQuestionAndAnswer(@Valid @RequestBody PracticeQuestionRequest practiceQuestionRequest) {
         practiceQuestionService.addQuestionAndAnswer(practiceQuestionRequest);

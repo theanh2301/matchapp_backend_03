@@ -80,6 +80,35 @@ public class PracticeQuestionService {
         }).toList();
     }
 
+    public List<PracticeQuestionResponse> getWrongQuestions(Integer practiceId, Integer userId) {
+
+        List<PracticeQuestion> practiceQuestions =
+                practiceQuestionRepository.findWrongQuestions(practiceId, userId);
+
+        return practiceQuestions.stream().map(q -> {
+
+            List<PracticeAnswerResponse> answers = practiceAnswerRepository
+                    .findByPracticeQuestionId(q.getId())
+                    .stream()
+                    .map(a -> new PracticeAnswerResponse(
+                            a.getId(),
+                            a.getContent(),
+                            a.getIsCorrect(),
+                            a.getDescription()
+                    ))
+                    .toList();
+
+            return new PracticeQuestionResponse(
+                    q.getId(),
+                    q.getContent(),
+                    q.getXpReward(),
+                    q.getDifficulty(),
+                    answers
+            );
+
+        }).toList();
+    }
+
     @Transactional
     public void addQuestionAndAnswer(PracticeQuestionRequest practiceQuestionRequest) {
 
