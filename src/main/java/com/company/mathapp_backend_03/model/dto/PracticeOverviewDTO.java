@@ -7,12 +7,12 @@ public interface PracticeOverviewDTO {
     String getTitle();
     String getDescription();
     Integer getTimeLimit();
-    Difficulty getDifficulty();
+    String getPracticeType();
+
     Integer getTotalQuestions();
     Integer getTotalXp();
 
     Long getTotalAnswered();
     Long getCorrectAnswers();
     Double getCorrectPercent();
-
 }
