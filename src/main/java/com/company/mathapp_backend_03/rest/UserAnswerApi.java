@@ -13,6 +13,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -56,6 +57,19 @@ public class UserAnswerApi {
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Đã xảy ra lỗi hệ thống.");
         }
+    }
+
+    @PostMapping("/progress/batch")
+    public ResponseEntity<?> submitQuizAnswers(
+            @RequestBody List<UserAnswerRequest> requests
+    ) {
+
+        userAnswerService.processQuizAnswerBatch(requests);
+
+        return ResponseEntity.ok(Map.of(
+                "message", "Lưu câu trả lời thành công",
+                "total", requests.size()
+        ));
     }
 
     @PostMapping("/progress")

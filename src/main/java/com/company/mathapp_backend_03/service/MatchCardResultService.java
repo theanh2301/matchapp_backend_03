@@ -15,8 +15,8 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -82,6 +82,109 @@ public class MatchCardResultService {
             throw new IllegalStateException("Operation too fast, progress is being processed.");
         }
     }*/
+
+    @Transactional
+    public void processMatchCardBatch(List<MatchCardResultRequest> requests) {
+
+        if (requests == null || requests.isEmpty()) return;
+
+        // 1. Lấy user (giả sử cùng 1 user)
+        Integer userId = requests.get(0).getUserId();
+
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new EntityNotFoundException("Không tìm thấy User"));
+
+        // 2. Lấy tất cả lesson 1 lần
+        List<Integer> lessonIds = requests.stream()
+                .map(MatchCardResultRequest::getLessonId)
+                .distinct()
+                .toList();
+
+        Map<Integer, Lesson> lessonMap = lessonRepository.findAllById(lessonIds)
+                .stream()
+                .collect(Collectors.toMap(Lesson::getId, l -> l));
+
+        // 3. Lấy tất cả kết quả cũ (tránh duplicate)
+        List<MatchCardResult> existingResults =
+                matchCardResultRepository.findByUserIdAndLessonIdIn(userId, lessonIds);
+
+        Map<Integer, MatchCardResult> resultMap = existingResults.stream()
+                .collect(Collectors.toMap(r -> r.getLesson().getId(), r -> r));
+
+        // 4. Lấy XP history 1 lần
+        List<UserXPHistory> historyList =
+                historyRepository.findByUserIdAndSourcedIdInAndSource(
+                        userId,
+                        lessonIds,
+                        Source.MATCH_CARD_GAME
+                );
+
+        Set<Integer> existingHistoryIds = historyList.stream()
+                .map(UserXPHistory::getSourcedId)
+                .collect(Collectors.toSet());
+
+        // 5. Chuẩn bị batch save
+        List<MatchCardResult> resultsToSave = new ArrayList<>();
+        List<UserXPHistory> historyToSave = new ArrayList<>();
+
+        int totalXpGained = 0;
+
+        // 6. Loop xử lý
+        for (MatchCardResultRequest request : requests) {
+
+            Lesson lesson = lessonMap.get(request.getLessonId());
+            if (lesson == null) continue;
+
+            MatchCardResult result = resultMap.get(lesson.getId());
+
+            boolean isNew = (result == null);
+
+            // ===== TÍNH XP (bạn có thể customize lại)
+            int earnedXp = request.getTotalXP() != null ? request.getTotalXP() : 0;
+
+            // ===== UPDATE / CREATE RESULT =====
+            if (result == null) {
+                result = new MatchCardResult();
+                result.setUser(user);
+                result.setLesson(lesson);
+            }
+
+            result.setTotalPairs(request.getTotalPairs());
+            result.setCorrectPairs(request.getCorrectPairs());
+            result.setTimeTaken(request.getTimeTaken());
+            result.setTotalXP(
+                    (result.getTotalXP() == null ? 0 : result.getTotalXP()) + earnedXp
+            );
+
+            resultsToSave.add(result);
+
+            // ===== XP HISTORY =====
+            if (earnedXp > 0 && !existingHistoryIds.contains(lesson.getId())) {
+
+                UserXPHistory history = new UserXPHistory();
+                history.setUser(user);
+                history.setXp(earnedXp);
+                history.setSource(Source.MATCH_CARD_GAME);
+                history.setSourcedId(lesson.getId());
+
+                historyToSave.add(history);
+
+                totalXpGained += earnedXp;
+            }
+        }
+
+        // 7. SAVE BATCH
+        matchCardResultRepository.saveAll(resultsToSave);
+
+        if (!historyToSave.isEmpty()) {
+            historyRepository.saveAll(historyToSave);
+        }
+
+        // 8. UPDATE USER 1 LẦN
+        if (totalXpGained > 0) {
+            updateUserStats(user, totalXpGained);
+        }
+    }
 
     @Transactional
     public UserXPHistoryResponse processMatchCardResult(MatchCardResultRequest request) {

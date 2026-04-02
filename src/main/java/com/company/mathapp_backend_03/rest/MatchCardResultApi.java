@@ -1,5 +1,7 @@
 package com.company.mathapp_backend_03.rest;
 
+import com.company.mathapp_backend_03.entity.MatchCardResult;
+import com.company.mathapp_backend_03.model.request.MatchCardBatchRequest;
 import com.company.mathapp_backend_03.model.request.MatchCardResultRequest;
 import com.company.mathapp_backend_03.model.response.FlashcardProgressResponse;
 import com.company.mathapp_backend_03.model.response.MatchCardResponse;
@@ -39,6 +41,20 @@ public class MatchCardResultApi {
         matchCardResultService.addOrUpdateMatchCardResult(matchCardResultRequest);
         return ResponseEntity.ok("Result updated successfully");
     }*/
+
+    @PostMapping("/progress/batch")
+    public ResponseEntity<Map<String, Object>> saveMatchCardBatch(
+            @RequestBody @Valid List<MatchCardResultRequest> request
+    ) {
+
+        matchCardResultService.processMatchCardBatch(request);
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("message", "Lưu danh sách match card thành công");
+        response.put("data", null);
+
+        return ResponseEntity.ok(response);
+    }
 
     @PostMapping("/progress")
     public ResponseEntity<Map<String, Object>> submitMatchCardResult(@RequestBody MatchCardResultRequest request) {

@@ -18,4 +18,6 @@ public interface MatchCardResultRepository extends JpaRepository<MatchCardResult
     Optional<MatchCardResult> findByMatchCardAndUser(MatchCard matchCard, User user);
 */
     Optional<MatchCardResult> findByLessonAndUser(Lesson lesson, User user);
+
+    List<MatchCardResult> findByUserIdAndLessonIdIn(Integer userId, List<Integer> lessonIds);
 }

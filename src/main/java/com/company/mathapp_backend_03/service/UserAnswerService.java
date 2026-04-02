@@ -1,7 +1,9 @@
 package com.company.mathapp_backend_03.service;
 
 import com.company.mathapp_backend_03.entity.*;
+import com.company.mathapp_backend_03.exception.BadRequestException;
 import com.company.mathapp_backend_03.model.enums.Source;
+import com.company.mathapp_backend_03.model.request.QuizAnswerRequest;
 import com.company.mathapp_backend_03.model.request.UserAnswerRequest;
 import com.company.mathapp_backend_03.model.response.UserAnswerResponse;
 import com.company.mathapp_backend_03.model.response.UserXPHistoryResponse;
@@ -13,7 +15,8 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
-import java.util.Optional;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -25,6 +28,7 @@ public class UserAnswerService {
     private final UserRepository userRepository;
     private final UserXPHistoryRepository historyRepository;
     private final UserStatRepository userStatRepository;
+    private final UserXPHistoryRepository userXPHistoryRepository;
 
     public UserAnswerResponse getUserAnswer(Integer userId, Integer questionId) {
         Optional<UserAnswer> userAnswerOpt = userAnswerRepository.findByUserIdAndQuizQuestionId(userId, questionId);
@@ -83,6 +87,145 @@ public class UserAnswerService {
             userAnswerRepository.save(userAnswer);
         } catch (DataIntegrityViolationException e) {
             throw new IllegalStateException("Operation too fast, your progress is being processed.");
+        }
+    }
+
+    @Transactional
+    public void processQuizAnswerBatch(List<UserAnswerRequest> requests) {
+
+        if (requests == null || requests.isEmpty()) return;
+
+        // ===== 0. REMOVE DUPLICATE QUESTION =====
+        requests = requests.stream()
+                .collect(Collectors.toMap(
+                        UserAnswerRequest::getQuestionId,
+                        r -> r,
+                        (oldVal, newVal) -> newVal
+                ))
+                .values()
+                .stream()
+                .toList();
+
+        // ===== 1. USER =====
+        Integer userId = requests.get(0).getUserId();
+
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new EntityNotFoundException("User not found"));
+
+        // ===== 2. LOAD QUESTIONS =====
+        List<Integer> questionIds = requests.stream()
+                .map(UserAnswerRequest::getQuestionId)
+                .toList();
+
+        Map<Integer, QuizQuestion> questionMap =
+                quizQuestionRepository.findAllById(questionIds)
+                        .stream()
+                        .collect(Collectors.toMap(QuizQuestion::getId, q -> q));
+
+        // ===== 3. LOAD ANSWERS (QUAN TRỌNG) =====
+        List<Integer> answerIds = requests.stream()
+                .map(UserAnswerRequest::getAnswerId)
+                .toList();
+
+        Map<Integer, QuizAnswer> answerMap =
+                quizAnswerRepository.findAllById(answerIds)
+                        .stream()
+                        .collect(Collectors.toMap(QuizAnswer::getId, a -> a));
+
+        // ===== 4. LOAD PROGRESS =====
+        List<UserAnswer> existing =
+                userAnswerRepository.findByUserIdAndQuizQuestionIdIn(userId, questionIds);
+
+        Map<Integer, UserAnswer> progressMap = existing.stream()
+                .collect(Collectors.toMap(p -> p.getQuizQuestion().getId(), p -> p));
+
+        // ===== 5. LOAD HISTORY =====
+        List<UserXPHistory> historyList =
+                userXPHistoryRepository.findByUserIdAndSourcedIdInAndSource(
+                        userId,
+                        questionIds,
+                        Source.QUIZ_GAME
+                );
+
+        Set<Integer> existingHistoryIds = historyList.stream()
+                .map(UserXPHistory::getSourcedId)
+                .collect(Collectors.toSet());
+
+        // ===== 6. PREPARE =====
+        List<UserAnswer> progressToSave = new ArrayList<>();
+        List<UserXPHistory> historyToSave = new ArrayList<>();
+
+        int totalXpGained = 0;
+
+        // ===== 7. LOOP =====
+        for (UserAnswerRequest request : requests) {
+
+            QuizQuestion question = questionMap.get(request.getQuestionId());
+            if (question == null) continue;
+
+            QuizAnswer answer = answerMap.get(request.getAnswerId());
+            if (answer == null) {
+                throw new EntityNotFoundException("Answer not found");
+            }
+
+            // ❗ CHECK answer thuộc question
+            if (!answer.getQuizQuestion().getId().equals(question.getId())) {
+                throw new BadRequestException("Answer does not belong to question");
+            }
+
+            // ❗ BACKEND tự check đúng sai
+            boolean isCorrect = Boolean.TRUE.equals(answer.getIsCorrect());
+
+            UserAnswer progress = progressMap.get(question.getId());
+
+            boolean alreadyCorrect = progress != null && Boolean.TRUE.equals(progress.getIsCorrect());
+
+            int earnedXp = (isCorrect && !alreadyCorrect)
+                    ? question.getXpReward()
+                    : 0;
+
+            // ===== CREATE / UPDATE =====
+            if (progress == null) {
+                progress = new UserAnswer();
+                progress.setUser(user);
+                progress.setQuizQuestion(question);
+            }
+
+            progress.setIsCorrect(isCorrect);
+            progress.setAnsweredAt(request.getAnsweredAt());
+            progress.setQuizAnswer(answer);
+
+            progress.setTotalXP(
+                    (progress.getTotalXP() == null ? 0 : progress.getTotalXP()) + earnedXp
+            );
+
+            progressToSave.add(progress);
+
+            // ===== XP HISTORY =====
+            if (earnedXp > 0 && !existingHistoryIds.contains(question.getId())) {
+
+                UserXPHistory history = new UserXPHistory();
+                history.setUser(user);
+                history.setXp(earnedXp);
+                history.setSource(Source.QUIZ_GAME);
+                history.setSourcedId(question.getId());
+
+                historyToSave.add(history);
+
+                totalXpGained += earnedXp;
+            }
+        }
+
+        // ===== 8. SAVE =====
+        userAnswerRepository.saveAll(progressToSave);
+
+        if (!historyToSave.isEmpty()) {
+            userXPHistoryRepository.saveAll(historyToSave);
+        }
+
+        // ===== 9. UPDATE USER =====
+        if (totalXpGained > 0) {
+            updateUserStats(user, totalXpGained);
         }
     }
 

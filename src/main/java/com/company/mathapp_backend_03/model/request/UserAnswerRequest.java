@@ -1,5 +1,6 @@
 package com.company.mathapp_backend_03.model.request;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
 import lombok.AccessLevel;
@@ -20,6 +21,7 @@ public class UserAnswerRequest {
     @NotNull(message = "isCorrect cannot be null")
     Boolean isCorrect;
     @NotNull(message = "answeredAT cannot be null")
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss.SSSSSS")
     LocalDateTime answeredAt;
     @NotNull(message = "totalXp cannot be null")
     @Min(value = 0, message = "XP reward must be greater than 0")
