@@ -18,37 +18,46 @@ public interface SubjectRepository extends JpaRepository<Subject, Integer> {
     @Query(value = """
     SELECT 
         s.id AS subjectId,
+        s.subject_class AS subjectClass,
         s.subject_name AS subjectName,
         s.icon AS icon,
-        
-        -- Tổng số lesson
-        (SELECT COUNT(l.id) 
-         FROM lessons l 
-         JOIN chapters c ON l.chapter_id = c.id 
-         WHERE c.subject_id = s.id) AS totalLessons,
-         
-        -- Số lesson đã hoàn thành
-        (SELECT COUNT(lc.id) 
-         FROM lesson_completion lc 
-         JOIN lessons l ON lc.lesson_id = l.id 
-         JOIN chapters c ON l.chapter_id = c.id 
-         WHERE c.subject_id = s.id 
-           AND lc.user_id = :userId 
-           AND lc.is_completed = true) AS completedLessons,
-           
-        -- Tổng XP từ lesson_completion
-        COALESCE((
-            SELECT SUM(lc.total_xp)
-            FROM lesson_completion lc
-            JOIN lessons l ON lc.lesson_id = l.id
-            JOIN chapters c ON l.chapter_id = c.id
-            WHERE c.subject_id = s.id
-              AND lc.user_id = :userId
-        ), 0) AS totalXp
-        
+
+        COUNT(DISTINCT l.id) AS totalLessons,
+
+        COUNT(DISTINCT CASE 
+            WHEN lc.is_completed = true THEN l.id 
+        END) AS completedLessons,
+
+        COALESCE(SUM(lc.total_xp), 0) AS earnedXp,
+
+        COALESCE(SUM(
+            (
+                SELECT COALESCE(SUM(f.xp_reward),0)
+                FROM flashcards f WHERE f.lesson_id = l.id
+            ) +
+            (
+                SELECT COALESCE(SUM(m.xp_reward),0)
+                FROM match_card m WHERE m.lesson_id = l.id
+            ) +
+            (
+                SELECT COALESCE(SUM(q.xp_reward),0)
+                FROM quiz_questions q WHERE q.lesson_id = l.id
+            )
+        ),0) AS totalXp
+
     FROM subjects s
+
+    LEFT JOIN chapters c ON c.subject_id = s.id
+    LEFT JOIN lessons l ON l.chapter_id = c.id
+
+    LEFT JOIN lesson_completion lc 
+        ON lc.lesson_id = l.id 
+        AND lc.user_id = :userId
+
     WHERE s.subject_class = :subjectClass
-    """, nativeQuery = true)
+
+    GROUP BY s.id, s.subject_class, s.subject_name, s.icon
+""", nativeQuery = true)
     List<SubjectOverviewDTO> getSubjectOverviewsByClass(
             @Param("userId") Integer userId,
             @Param("subjectClass") Integer subjectClass

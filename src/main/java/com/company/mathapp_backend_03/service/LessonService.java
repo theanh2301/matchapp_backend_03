@@ -103,6 +103,6 @@ public class LessonService {
     }
 
     public List<LessonOverviewDTO> getLessonOverviewsByChapterId(Integer userId, Integer chapterId) {
-        return lessonRepository.getLessonOverviewsByChapterId(userId, chapterId);
+        return lessonRepository.getLessonOverview(userId, chapterId);
     }
 }

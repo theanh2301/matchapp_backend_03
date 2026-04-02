@@ -22,32 +22,38 @@ public interface LessonRepository extends JpaRepository<Lesson, Integer> {
     boolean existsByLessonNameAndChapterAndIdNot(String lessonName, Chapter chapter, Integer id);
 
     @Query(value = """
-        SELECT 
-            l.id AS lessonId,
-            l.lesson_name AS lessonName,
-            l.description AS description,
-            
-            -- TÍNH XP ĐÃ ĐẠT ĐƯỢC CỦA BÀI HỌC
-            (
-                COALESCE((SELECT SUM(fp.totalxp) FROM flashcard_progress fp JOIN flashcards f ON fp.flashcard_id = f.id WHERE f.lesson_id = l.id AND fp.user_id = :userId), 0) +
-                COALESCE((SELECT SUM(ua.totalxp) FROM user_answer ua JOIN quiz_questions q ON ua.question_id = q.id WHERE q.lesson_id = l.id AND ua.user_id = :userId), 0) +
-                COALESCE((SELECT SUM(mcr.totalxp) FROM match_card_result mcr JOIN match_card mc ON mcr.match_card_id = mc.id WHERE mc.lesson_id = l.id AND mcr.user_id = :userId), 0)
-            ) AS earnedXp,
-            
-            -- TÍNH TỔNG XP TỐI ĐA CỦA BÀI HỌC
-            (
-                COALESCE((SELECT SUM(f.xp_reward) FROM flashcards f WHERE f.lesson_id = l.id), 0) +
-                COALESCE((SELECT SUM(q.xp_reward) FROM quiz_questions q WHERE q.lesson_id = l.id), 0) +
-                COALESCE((SELECT SUM(mc.xp_reward) FROM match_card mc WHERE mc.lesson_id = l.id), 0)
-            ) AS totalPossibleXp,
-            
-            -- TRẠNG THÁI HOÀN THÀNH TỪNG GAME (1 nếu user có dữ liệu điểm, 0 nếu không)
-            CASE WHEN (SELECT COUNT(fp.id) FROM flashcard_progress fp JOIN flashcards f ON fp.flashcard_id = f.id WHERE f.lesson_id = l.id AND fp.user_id = :userId) > 0 THEN 1 ELSE 0 END AS isFlashcardDone,
-            CASE WHEN (SELECT COUNT(ua.id) FROM user_answer ua JOIN quiz_questions q ON ua.question_id = q.id WHERE q.lesson_id = l.id AND ua.user_id = :userId) > 0 THEN 1 ELSE 0 END AS isQuestionDone,
-            CASE WHEN (SELECT COUNT(mcr.id) FROM match_card_result mcr JOIN match_card mc ON mcr.match_card_id = mc.id WHERE mc.lesson_id = l.id AND mcr.user_id = :userId) > 0 THEN 1 ELSE 0 END AS isMatchCardDone
-            
-        FROM lessons l
-        WHERE l.chapter_id = :chapterId
-        """, nativeQuery = true)
-    List<LessonOverviewDTO> getLessonOverviewsByChapterId(@Param("userId") Integer userId, @Param("chapterId") Integer chapterId);
+    SELECT 
+        l.id AS lessonId,
+        l.lesson_name AS lessonName,
+        l.description AS description,
+
+        -- XP user đã đạt
+        COALESCE(lc.total_xp, 0) AS earnedXp,
+
+        -- Tổng XP tối đa
+        (
+            COALESCE((SELECT SUM(f.xp_reward) FROM flashcards f WHERE f.lesson_id = l.id),0)
+            +
+            COALESCE((SELECT SUM(m.xp_reward) FROM match_card m WHERE m.lesson_id = l.id),0)
+            +
+            COALESCE((SELECT SUM(q.xp_reward) FROM quiz_questions q WHERE q.lesson_id = l.id),0)
+        ) AS totalPossibleXp,
+
+        -- Trạng thái hoàn thành từng loại
+        CASE WHEN lc.is_flashcard_completed = TRUE THEN 1 ELSE 0 END AS isFlashcardDone,
+        CASE WHEN lc.is_quiz_completed = TRUE THEN 1 ELSE 0 END AS isQuestionDone,
+        CASE WHEN lc.is_match_card_completed = TRUE THEN 1 ELSE 0 END AS isMatchCardDone
+
+    FROM lessons l
+
+    LEFT JOIN lesson_completion lc 
+        ON lc.lesson_id = l.id 
+        AND lc.user_id = :userId
+
+    WHERE l.chapter_id = :chapterId
+""", nativeQuery = true)
+    List<LessonOverviewDTO> getLessonOverview(
+            @Param("userId") Integer userId,
+            @Param("chapterId") Integer chapterId
+    );
 }

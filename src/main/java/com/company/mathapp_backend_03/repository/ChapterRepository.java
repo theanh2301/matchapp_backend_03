@@ -26,48 +26,42 @@ public interface ChapterRepository extends JpaRepository<Chapter, Integer> {
         c.id AS chapterId,
         c.chapter_name AS chapterName,
         c.description AS description,
-        
-        -- Tổng số lesson
-        (SELECT COUNT(l.id) 
-         FROM lessons l 
-         WHERE l.chapter_id = c.id) AS totalLessons,
-        
-        -- Số lesson đã hoàn thành
-        (SELECT COUNT(lc.id) 
-         FROM lesson_completion lc 
-         JOIN lessons l ON lc.lesson_id = l.id 
-         WHERE l.chapter_id = c.id 
-           AND lc.user_id = :userId 
-           AND lc.is_completed = true) AS completedLessons,
-           
-        -- XP đã đạt (từ lesson_completion)
-        COALESCE((
-            SELECT SUM(lc.total_xp)
-            FROM lesson_completion lc
-            JOIN lessons l ON lc.lesson_id = l.id
-            WHERE l.chapter_id = c.id
-              AND lc.user_id = :userId
-        ), 0) AS earnedXp,
-        
-        -- Tổng XP tối đa (giữ nguyên)
-        (
-            COALESCE((SELECT SUM(f.xp_reward) 
-                      FROM flashcards f 
-                      JOIN lessons l ON f.lesson_id = l.id 
-                      WHERE l.chapter_id = c.id), 0) +
-            COALESCE((SELECT SUM(q.xp_reward) 
-                      FROM quiz_questions q 
-                      JOIN lessons l ON q.lesson_id = l.id 
-                      WHERE l.chapter_id = c.id), 0) +
-            COALESCE((SELECT SUM(mc.xp_reward) 
-                      FROM match_card mc 
-                      JOIN lessons l ON mc.lesson_id = l.id 
-                      WHERE l.chapter_id = c.id), 0)
-        ) AS totalPossibleXp
-        
+
+        COUNT(DISTINCT l.id) AS totalLessons,
+
+        COUNT(DISTINCT CASE 
+            WHEN lc.is_completed = true THEN l.id 
+        END) AS completedLessons,
+
+        COALESCE(SUM(lc.total_xp), 0) AS earnedXp,
+
+        COALESCE(SUM(
+            (
+                SELECT COALESCE(SUM(f.xp_reward),0)
+                FROM flashcards f WHERE f.lesson_id = l.id
+            ) +
+            (
+                SELECT COALESCE(SUM(m.xp_reward),0)
+                FROM match_card m WHERE m.lesson_id = l.id
+            ) +
+            (
+                SELECT COALESCE(SUM(q.xp_reward),0)
+                FROM quiz_questions q WHERE q.lesson_id = l.id
+            )
+        ),0) AS totalPossibleXp
+
     FROM chapters c
+
+    LEFT JOIN lessons l ON l.chapter_id = c.id
+
+    LEFT JOIN lesson_completion lc 
+        ON lc.lesson_id = l.id 
+        AND lc.user_id = :userId
+
     WHERE c.subject_id = :subjectId
-    """, nativeQuery = true)
+
+    GROUP BY c.id, c.chapter_name, c.description
+""", nativeQuery = true)
     List<ChapterOverviewDTO> getChapterOverviewsBySubject(
             @Param("userId") Integer userId,
             @Param("subjectId") Integer subjectId
