@@ -16,4 +16,6 @@ public interface UserXPHistoryRepository extends JpaRepository<UserXPHistory, In
     boolean existsByUserIdAndSourcedIdAndSource(Integer userId, Integer flashcardId, Source source);
 
     Optional<UserXPHistory> findByUserIdAndSourcedIdAndSource(Integer id, Integer id1, Source source);
+
+    List<UserXPHistory> findByUserIdAndSourcedIdInAndSource(Integer userId, List<Integer> flashcardIds, Source source);
 }

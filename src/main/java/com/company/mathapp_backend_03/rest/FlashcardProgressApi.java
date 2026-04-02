@@ -34,11 +34,20 @@ public class FlashcardProgressApi {
         return ResponseEntity.ok(response);
     }
 
-    @PostMapping("/save")
-    public ResponseEntity<String> saveProgress(@Valid @RequestBody FlashcardProgressRequest request) {
-        flashcardProgressService.addOrUpdateFlashcardProgress(request);
-        return ResponseEntity.ok("Progress updated successfully");
+    @PostMapping("/progress/batch")
+    public ResponseEntity<Map<String, Object>> saveFlashcardBatch(
+            @RequestBody @Valid List<FlashcardProgressRequest> requests
+    ) {
+
+        flashcardProgressService.processFlashcardStudyBatch(requests);
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("message", "Lưu thành công");
+        response.put("data", null);
+
+        return ResponseEntity.ok(response);
     }
+
 
     @PostMapping("/progress")
     public ResponseEntity<ApiResponse<UserXPHistoryResponse>> submitFlashcardProgress(

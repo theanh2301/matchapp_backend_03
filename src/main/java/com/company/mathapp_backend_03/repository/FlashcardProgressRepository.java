@@ -18,4 +18,6 @@ public interface FlashcardProgressRepository extends JpaRepository<FlashcardProg
     Optional<FlashcardProgress> findByFlashcardAndUser(Flashcard flashcard, User user);
 
     Optional<FlashcardProgress> findByUserIdAndFlashcardId(Integer id, Integer id1);
+
+    List<FlashcardProgress> findByUserIdAndFlashcardIdIn(Integer userId, List<Integer> flashcardIds);
 }

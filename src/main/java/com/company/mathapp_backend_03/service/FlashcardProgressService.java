@@ -13,7 +13,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
-import java.util.Optional;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -23,6 +24,8 @@ public class FlashcardProgressService {
     private final UserRepository userRepository;
     private final UserXPHistoryRepository userXPHistoryRepository;
     private final UserStatRepository userStatRepository;
+
+    private final LessonCompletionService lessonCompletionService;
 
     public FlashcardProgress progress;
 
@@ -43,37 +46,107 @@ public class FlashcardProgressService {
                 );
     }
 
+
     @Transactional
-    public void addOrUpdateFlashcardProgress(FlashcardProgressRequest flashcardProgressRequest) {
+    public void processFlashcardStudyBatch(List<FlashcardProgressRequest> requests) {
 
-        Flashcard flashcard = flashcardRepository.findById(flashcardProgressRequest.getFlashcardId())
-                .orElseThrow(() -> new EntityNotFoundException("Flashcard not found"));
+        if (requests == null || requests.isEmpty()) return;
 
+        // 1. Lấy user (giả sử tất cả cùng 1 user)
+        Integer userId = requests.get(0).getUserId();
 
-        User user = userRepository.findById(flashcardProgressRequest.getUserId())
-                .orElseThrow(() -> new EntityNotFoundException("User not found"));
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new EntityNotFoundException("Không tìm thấy User"));
 
+        // 2. Lấy toàn bộ flashcard 1 lần
+        List<Integer> flashcardIds = requests.stream()
+                .map(FlashcardProgressRequest::getFlashcardId)
+                .distinct()
+                .toList();
 
-        progress = flashcardProgressRepository
-                .findByFlashcardAndUser(flashcard, user)
-                .orElseGet(() -> {
-                    FlashcardProgress newProgress = new FlashcardProgress();
-                    newProgress.setFlashcard(flashcard);
-                    newProgress.setUser(user);
-                    newProgress.setTotalXP(0);
-                    return newProgress;
-                });
+        Map<Integer, Flashcard> flashcardMap = flashcardRepository
+                .findAllById(flashcardIds)
+                .stream()
+                .collect(Collectors.toMap(Flashcard::getId, f -> f));
 
-        progress.setIsKnown(flashcardProgressRequest.getIsKnown());
-        progress.setLastReviewed(flashcardProgressRequest.getLastReviewed() != null ? flashcardProgressRequest.getLastReviewed() : LocalDateTime.now());
+        // 3. Lấy toàn bộ progress 1 lần
+        List<FlashcardProgress> existingProgressList =
+                flashcardProgressRepository.findByUserIdAndFlashcardIdIn(userId, flashcardIds);
 
-        int currentXP = (progress.getTotalXP() != null) ? progress.getTotalXP() : 0;
-        progress.setTotalXP(currentXP + flashcardProgressRequest.getTotalXP());
+        Map<Integer, FlashcardProgress> progressMap = existingProgressList.stream()
+                .collect(Collectors.toMap(p -> p.getFlashcard().getId(), p -> p));
 
-        try {
-            flashcardProgressRepository.save(progress);
-        } catch (DataIntegrityViolationException e) {
-            throw new IllegalStateException("Thao tác quá nhanh, tiến độ đang được xử lý.");
+        // 4. Lấy toàn bộ XP history 1 lần
+        List<UserXPHistory> historyList =
+                userXPHistoryRepository.findByUserIdAndSourcedIdInAndSource(
+                        userId,
+                        flashcardIds,
+                        Source.FLASHCARD_GAME
+                );
+
+        Set<Integer> existingHistoryIds = historyList.stream()
+                .map(UserXPHistory::getSourcedId)
+                .collect(Collectors.toSet());
+
+        // 5. Chuẩn bị list save batch
+        List<FlashcardProgress> progressToSave = new ArrayList<>();
+        List<UserXPHistory> historyToSave = new ArrayList<>();
+
+        int totalXpGained = 0;
+
+        // 6. Loop xử lý
+        for (FlashcardProgressRequest request : requests) {
+
+            Flashcard flashcard = flashcardMap.get(request.getFlashcardId());
+            if (flashcard == null) continue;
+
+            FlashcardProgress progress = progressMap.get(flashcard.getId());
+
+            boolean previouslyKnown = progress != null && Boolean.TRUE.equals(progress.getIsKnown());
+            boolean newlyKnown = Boolean.TRUE.equals(request.getIsKnown());
+
+            int earnedXp = (newlyKnown && !previouslyKnown) ? flashcard.getXpReward() : 0;
+
+            // ===== UPDATE PROGRESS =====
+            if (progress == null) {
+                progress = new FlashcardProgress();
+                progress.setUser(user);
+                progress.setFlashcard(flashcard);
+            }
+
+            progress.setIsKnown(request.getIsKnown());
+            progress.setLastReviewed(request.getLastReviewed());
+            progress.setTotalXP(
+                    (progress.getTotalXP() == null ? 0 : progress.getTotalXP()) + earnedXp
+            );
+
+            progressToSave.add(progress);
+
+            // ===== XP HISTORY =====
+            if (earnedXp > 0 && !existingHistoryIds.contains(flashcard.getId())) {
+
+                UserXPHistory history = new UserXPHistory();
+                history.setUser(user);
+                history.setXp(earnedXp);
+                history.setSource(Source.FLASHCARD_GAME);
+                history.setSourcedId(flashcard.getId());
+
+                historyToSave.add(history);
+
+                totalXpGained += earnedXp;
+            }
+        }
+
+        // 7. SAVE BATCH (QUAN TRỌNG)
+        flashcardProgressRepository.saveAll(progressToSave);
+
+        if (!historyToSave.isEmpty()) {
+            userXPHistoryRepository.saveAll(historyToSave);
+        }
+
+        // 8. UPDATE USER 1 LẦN DUY NHẤT
+        if (totalXpGained > 0) {
+            updateUserStats(user, totalXpGained);
         }
     }
 
@@ -95,7 +168,7 @@ public class FlashcardProgressService {
 
         int earnedXp = (newlyKnown && !previouslyKnown) ? flashcard.getXpReward() : 0;
 
-        // 1. Update progress
+        // 1. Update progress flashcard
         updateFlashcardProgress(user, flashcard, request, progress, earnedXp);
 
         UserXPHistory history = null;
