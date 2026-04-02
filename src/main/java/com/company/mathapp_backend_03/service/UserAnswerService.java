@@ -29,6 +29,7 @@ public class UserAnswerService {
     private final UserXPHistoryRepository historyRepository;
     private final UserStatRepository userStatRepository;
     private final UserXPHistoryRepository userXPHistoryRepository;
+    private final LessonCompletionService lessonCompletionService;
 
     public UserAnswerResponse getUserAnswer(Integer userId, Integer questionId) {
         Optional<UserAnswer> userAnswerOpt = userAnswerRepository.findByUserIdAndQuizQuestionId(userId, questionId);
@@ -95,26 +96,16 @@ public class UserAnswerService {
 
         if (requests == null || requests.isEmpty()) return;
 
-        // ===== 0. REMOVE DUPLICATE QUESTION =====
-        requests = requests.stream()
-                .collect(Collectors.toMap(
-                        UserAnswerRequest::getQuestionId,
-                        r -> r,
-                        (oldVal, newVal) -> newVal
-                ))
-                .values()
-                .stream()
-                .toList();
-
         // ===== 1. USER =====
         Integer userId = requests.get(0).getUserId();
 
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new EntityNotFoundException("User not found"));
 
-        // ===== 2. LOAD QUESTIONS =====
+        // ===== 2. LOAD QUESTION =====
         List<Integer> questionIds = requests.stream()
                 .map(UserAnswerRequest::getQuestionId)
+                .distinct()
                 .toList();
 
         Map<Integer, QuizQuestion> questionMap =
@@ -122,9 +113,10 @@ public class UserAnswerService {
                         .stream()
                         .collect(Collectors.toMap(QuizQuestion::getId, q -> q));
 
-        // ===== 3. LOAD ANSWERS (QUAN TRỌNG) =====
+        // ===== 3. LOAD ANSWER =====
         List<Integer> answerIds = requests.stream()
                 .map(UserAnswerRequest::getAnswerId)
+                .distinct()
                 .toList();
 
         Map<Integer, QuizAnswer> answerMap =
@@ -157,6 +149,9 @@ public class UserAnswerService {
 
         int totalXpGained = 0;
 
+        // 🔥 QUAN TRỌNG: XP theo lesson
+        Map<Integer, Integer> xpByLesson = new HashMap<>();
+
         // ===== 7. LOOP =====
         for (UserAnswerRequest request : requests) {
 
@@ -168,21 +163,22 @@ public class UserAnswerService {
                 throw new EntityNotFoundException("Answer not found");
             }
 
-            // ❗ CHECK answer thuộc question
+            // ❗ check answer thuộc question
             if (!answer.getQuizQuestion().getId().equals(question.getId())) {
-                throw new BadRequestException("Answer does not belong to question");
+                throw new RuntimeException("Answer không thuộc question");
             }
 
-            // ❗ BACKEND tự check đúng sai
             boolean isCorrect = Boolean.TRUE.equals(answer.getIsCorrect());
 
             UserAnswer progress = progressMap.get(question.getId());
 
             boolean alreadyCorrect = progress != null && Boolean.TRUE.equals(progress.getIsCorrect());
 
-            int earnedXp = (isCorrect && !alreadyCorrect)
-                    ? question.getXpReward()
+            int earnedXp = (!alreadyCorrect)
+                    ? calculateQuizXp(question, isCorrect)
                     : 0;
+
+            Integer lessonId = question.getLesson().getId();
 
             // ===== CREATE / UPDATE =====
             if (progress == null) {
@@ -191,9 +187,9 @@ public class UserAnswerService {
                 progress.setQuizQuestion(question);
             }
 
+            progress.setQuizAnswer(answer);
             progress.setIsCorrect(isCorrect);
             progress.setAnsweredAt(request.getAnsweredAt());
-            progress.setQuizAnswer(answer);
 
             progress.setTotalXP(
                     (progress.getTotalXP() == null ? 0 : progress.getTotalXP()) + earnedXp
@@ -213,6 +209,9 @@ public class UserAnswerService {
                 historyToSave.add(history);
 
                 totalXpGained += earnedXp;
+
+                // 🔥 cộng theo lesson
+                xpByLesson.merge(lessonId, earnedXp, Integer::sum);
             }
         }
 
@@ -227,6 +226,20 @@ public class UserAnswerService {
         if (totalXpGained > 0) {
             updateUserStats(user, totalXpGained);
         }
+
+        // ===== 🔥 10. UPDATE LESSON COMPLETION =====
+        for (Map.Entry<Integer, Integer> entry : xpByLesson.entrySet()) {
+            lessonCompletionService.updateLessonProgress(
+                    userId,
+                    entry.getKey(),
+                    entry.getValue(),
+                    Source.QUIZ_GAME
+            );
+        }
+    }
+
+    private int calculateQuizXp(QuizQuestion question, boolean isCorrect) {
+        return isCorrect ? question.getXpReward() : 0;
     }
 
     @Transactional

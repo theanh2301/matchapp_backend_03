@@ -27,6 +27,7 @@ public class MatchCardResultService {
     private final UserXPHistoryRepository historyRepository;
     private final UserStatRepository userStatRepository;
     private final LessonRepository lessonRepository;
+    private final LessonCompletionService lessonCompletionService;
 
    /* public MatchCardResultResponse getMatchCardResult(Integer matchCardId, Integer userId) {
         Optional<MatchCardResult> matchCardResults = matchCardResultRepository.findByMatchCardIdAndUserId(matchCardId, userId);
@@ -88,13 +89,13 @@ public class MatchCardResultService {
 
         if (requests == null || requests.isEmpty()) return;
 
-        // 1. Lấy user (giả sử cùng 1 user)
+        // ===== 1. USER =====
         Integer userId = requests.get(0).getUserId();
 
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new EntityNotFoundException("Không tìm thấy User"));
 
-        // 2. Lấy tất cả lesson 1 lần
+        // ===== 2. LOAD LESSON =====
         List<Integer> lessonIds = requests.stream()
                 .map(MatchCardResultRequest::getLessonId)
                 .distinct()
@@ -104,14 +105,14 @@ public class MatchCardResultService {
                 .stream()
                 .collect(Collectors.toMap(Lesson::getId, l -> l));
 
-        // 3. Lấy tất cả kết quả cũ (tránh duplicate)
+        // ===== 3. LOAD RESULT CŨ =====
         List<MatchCardResult> existingResults =
                 matchCardResultRepository.findByUserIdAndLessonIdIn(userId, lessonIds);
 
         Map<Integer, MatchCardResult> resultMap = existingResults.stream()
                 .collect(Collectors.toMap(r -> r.getLesson().getId(), r -> r));
 
-        // 4. Lấy XP history 1 lần
+        // ===== 4. LOAD HISTORY =====
         List<UserXPHistory> historyList =
                 historyRepository.findByUserIdAndSourcedIdInAndSource(
                         userId,
@@ -123,13 +124,16 @@ public class MatchCardResultService {
                 .map(UserXPHistory::getSourcedId)
                 .collect(Collectors.toSet());
 
-        // 5. Chuẩn bị batch save
+        // ===== 5. PREPARE =====
         List<MatchCardResult> resultsToSave = new ArrayList<>();
         List<UserXPHistory> historyToSave = new ArrayList<>();
 
         int totalXpGained = 0;
 
-        // 6. Loop xử lý
+        // 🔥 QUAN TRỌNG: XP theo lesson
+        Map<Integer, Integer> xpByLesson = new HashMap<>();
+
+        // ===== 6. LOOP =====
         for (MatchCardResultRequest request : requests) {
 
             Lesson lesson = lessonMap.get(request.getLessonId());
@@ -137,12 +141,10 @@ public class MatchCardResultService {
 
             MatchCardResult result = resultMap.get(lesson.getId());
 
-            boolean isNew = (result == null);
+            // ❗ Backend nên tự tính XP (gợi ý)
+            int earnedXp = calculateMatchCardXp(request);
 
-            // ===== TÍNH XP (bạn có thể customize lại)
-            int earnedXp = request.getTotalXP() != null ? request.getTotalXP() : 0;
-
-            // ===== UPDATE / CREATE RESULT =====
+            // ===== CREATE / UPDATE =====
             if (result == null) {
                 result = new MatchCardResult();
                 result.setUser(user);
@@ -152,6 +154,7 @@ public class MatchCardResultService {
             result.setTotalPairs(request.getTotalPairs());
             result.setCorrectPairs(request.getCorrectPairs());
             result.setTimeTaken(request.getTimeTaken());
+
             result.setTotalXP(
                     (result.getTotalXP() == null ? 0 : result.getTotalXP()) + earnedXp
             );
@@ -170,20 +173,53 @@ public class MatchCardResultService {
                 historyToSave.add(history);
 
                 totalXpGained += earnedXp;
+
+                // 🔥 cộng theo lesson
+                xpByLesson.merge(lesson.getId(), earnedXp, Integer::sum);
             }
         }
 
-        // 7. SAVE BATCH
+        // ===== 7. SAVE =====
         matchCardResultRepository.saveAll(resultsToSave);
 
         if (!historyToSave.isEmpty()) {
             historyRepository.saveAll(historyToSave);
         }
 
-        // 8. UPDATE USER 1 LẦN
+        // ===== 8. UPDATE USER =====
         if (totalXpGained > 0) {
             updateUserStats(user, totalXpGained);
         }
+
+        // ===== 9. UPDATE LESSON COMPLETION =====
+        for (Map.Entry<Integer, Integer> entry : xpByLesson.entrySet()) {
+            lessonCompletionService.updateLessonProgress(
+                    userId,
+                    entry.getKey(),
+                    entry.getValue(),
+                    Source.MATCH_CARD_GAME
+            );
+        }
+    }
+
+    private int calculateMatchCardXp(MatchCardResultRequest request) {
+
+        int correct = request.getCorrectPairs();
+        int total = request.getTotalPairs();
+        int time = request.getTimeTaken();
+
+        if (total == 0) return 0;
+
+        double accuracy = (double) correct / total;
+
+        int baseXp = (int) (accuracy * 100);
+
+        // thưởng nếu nhanh
+        if (time < 60) {
+            baseXp += 20;
+        }
+
+        return baseXp;
     }
 
     @Transactional
