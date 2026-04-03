@@ -1,6 +1,7 @@
 package com.company.mathapp_backend_03.rest;
 
 import com.company.mathapp_backend_03.model.dto.LessonOverviewDTO;
+import com.company.mathapp_backend_03.model.dto.SuggestedLessonDTO;
 import com.company.mathapp_backend_03.model.request.LessonRequest;
 import com.company.mathapp_backend_03.model.response.ApiResponse;
 import com.company.mathapp_backend_03.model.response.LessonResponse;
@@ -10,7 +11,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @RequestMapping("/api/lessons")
 @RestController
@@ -31,6 +34,21 @@ public class LessonApi {
                 "Lấy danh sách bài học thành công",
                 overviews
         );
+
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/suggested-lessons")
+    public ResponseEntity<Map<String, Object>> getSuggestedLessons(
+            @RequestParam Integer userId,
+            @RequestParam Integer subjectId
+    ) {
+
+        List<SuggestedLessonDTO> lessons = lessonService.getSuggestedLessons(userId, subjectId);
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("message", "Lấy danh sách lesson gợi ý thành công");
+        response.put("data", lessons);
 
         return ResponseEntity.ok(response);
     }

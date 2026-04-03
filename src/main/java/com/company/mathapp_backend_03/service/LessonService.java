@@ -6,6 +6,7 @@ import com.company.mathapp_backend_03.exception.BadRequestException;
 import com.company.mathapp_backend_03.exception.ConflictException;
 import com.company.mathapp_backend_03.exception.NotFoundException;
 import com.company.mathapp_backend_03.model.dto.LessonOverviewDTO;
+import com.company.mathapp_backend_03.model.dto.SuggestedLessonDTO;
 import com.company.mathapp_backend_03.model.request.LessonRequest;
 import com.company.mathapp_backend_03.model.response.LessonResponse;
 import com.company.mathapp_backend_03.repository.*;
@@ -13,6 +14,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
@@ -104,5 +106,28 @@ public class LessonService {
 
     public List<LessonOverviewDTO> getLessonOverviewsByChapterId(Integer userId, Integer chapterId) {
         return lessonRepository.getLessonOverview(userId, chapterId);
+    }
+
+    public List<SuggestedLessonDTO> getSuggestedLessons(Integer userId, Integer subjectId) {
+
+        // 1. tìm chapter hiện tại
+        Integer chapterId = lessonRepository.findCurrentChapterId(userId, subjectId);
+
+        if (chapterId == null) {
+            return Collections.emptyList(); // học hết rồi
+        }
+
+        // 2. lấy lesson gợi ý
+        List<SuggestedLessonDTO> lessons =
+                lessonRepository.getSuggestedLessons(userId, chapterId);
+
+        // 3. fallback nếu < 4 lesson
+        if (lessons.size() < 4) {
+            List<SuggestedLessonDTO> extra =
+                    lessonRepository.getRemainingLessons(userId, chapterId, 4 - lessons.size());
+            lessons.addAll(extra);
+        }
+
+        return lessons;
     }
 }

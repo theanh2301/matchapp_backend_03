@@ -3,6 +3,7 @@ package com.company.mathapp_backend_03.repository;
 import com.company.mathapp_backend_03.entity.Chapter;
 import com.company.mathapp_backend_03.entity.Lesson;
 import com.company.mathapp_backend_03.model.dto.LessonOverviewDTO;
+import com.company.mathapp_backend_03.model.dto.SuggestedLessonDTO;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -56,4 +57,85 @@ public interface LessonRepository extends JpaRepository<Lesson, Integer> {
             @Param("userId") Integer userId,
             @Param("chapterId") Integer chapterId
     );
+
+    @Query(value = """
+    SELECT * FROM (
+        (
+            SELECT 
+                l.id AS lessonId,
+                l.lesson_name AS lessonName,
+                1 AS isLearned,
+                lc.updated_at AS updatedAt
+            FROM lessons l
+            JOIN lesson_completion lc 
+                ON lc.lesson_id = l.id
+            WHERE l.chapter_id = :chapterId
+              AND lc.user_id = :userId
+            ORDER BY lc.updated_at DESC
+            LIMIT 1
+        )
+
+        UNION ALL
+
+        (
+            SELECT 
+                l.id AS lessonId,
+                l.lesson_name AS lessonName,
+                0 AS isLearned,
+                NULL AS updatedAt
+            FROM lessons l
+            LEFT JOIN lesson_completion lc 
+                ON lc.lesson_id = l.id 
+                AND lc.user_id = :userId
+            WHERE l.chapter_id = :chapterId
+              AND (lc.id IS NULL OR lc.is_completed = false)
+            LIMIT 3
+        )
+    ) t
+    LIMIT 4
+""", nativeQuery = true)
+    List<SuggestedLessonDTO> getSuggestedLessons(
+            @Param("userId") Integer userId,
+            @Param("chapterId") Integer chapterId
+    );
+
+    @Query(value = """
+    SELECT c.id
+    FROM chapters c
+    WHERE c.subject_id = :subjectId
+    AND EXISTS (
+        SELECT 1
+        FROM lessons l
+        LEFT JOIN lesson_completion lc 
+            ON lc.lesson_id = l.id AND lc.user_id = :userId
+        WHERE l.chapter_id = c.id
+          AND (lc.is_completed IS NULL OR lc.is_completed = false)
+    )
+    ORDER BY c.id
+    LIMIT 1
+""", nativeQuery = true)
+    Integer findCurrentChapterId(
+            @Param("userId") Integer userId,
+            @Param("subjectId") Integer subjectId
+    );
+
+    @Query(value = """
+    SELECT 
+        l.id AS lessonId,
+        l.lesson_name AS lessonName,
+        0 AS isLearned,
+        NULL AS updatedAt
+    FROM lessons l
+    LEFT JOIN lesson_completion lc 
+        ON lc.lesson_id = l.id 
+        AND lc.user_id = :userId
+    WHERE l.chapter_id = :chapterId
+    LIMIT :limit
+""", nativeQuery = true)
+    List<SuggestedLessonDTO> getRemainingLessons(
+            @Param("userId") Integer userId,
+            @Param("chapterId") Integer chapterId,
+            @Param("limit") Integer limit
+    );
+
 }
