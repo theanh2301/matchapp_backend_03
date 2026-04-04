@@ -7,6 +7,7 @@ import com.company.mathapp_backend_03.model.enums.PracticeType;
 import com.company.mathapp_backend_03.model.request.PracticeProgressRequest;
 import com.company.mathapp_backend_03.model.request.UserAnswerRequest;
 import com.company.mathapp_backend_03.model.response.ApiResponse;
+import com.company.mathapp_backend_03.model.response.PracticeStatsGroupResponse;
 import com.company.mathapp_backend_03.model.response.PracticeStatsResponse;
 import com.company.mathapp_backend_03.model.response.UserXPHistoryResponse;
 import com.company.mathapp_backend_03.service.PracticeProgressService;
@@ -28,13 +29,18 @@ public class PracticeApi {
     private final PracticeService practiceService;
     private final PracticeProgressService practiceProgressService;
 
-    @GetMapping("/stats")
+    /*@GetMapping("/stats")
     public ResponseEntity<PracticeStatsResponse> getStatsByType(
             @RequestParam PracticeType practiceType,
             @RequestParam Integer userId) {
 
         PracticeStatsResponse stats = practiceService.getPracticeStats(practiceType, userId);
         return ResponseEntity.ok(stats);
+    }*/
+
+    @GetMapping("/stats")
+    public PracticeStatsGroupResponse getAllStats(@RequestParam Integer userId) {
+        return practiceService.getAllPracticeStats(userId);
     }
 
     @GetMapping("/overview")

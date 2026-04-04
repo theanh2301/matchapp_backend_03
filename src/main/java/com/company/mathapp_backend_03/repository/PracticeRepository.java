@@ -14,6 +14,22 @@ import java.util.List;
 public interface PracticeRepository extends JpaRepository<Practice, Integer> {
     Integer countByPracticeType(PracticeType practiceType);
 
+
+    @Query("""
+    SELECT p.practiceType, COUNT(p)
+    FROM Practice p
+    GROUP BY p.practiceType
+""")
+    List<Object[]> countAllByPracticeType();
+
+    @Query("""
+    SELECT up.practice.practiceType, COUNT(up)
+    FROM UserPractice up
+    WHERE up.userId = :userId AND up.isCompleted = true
+    GROUP BY up.practice.practiceType
+""")
+    List<Object[]> countCompletedGroupByType(@Param("userId") Integer userId);
+
     @Query(value = """
     SELECT 
         p.id AS id, 
