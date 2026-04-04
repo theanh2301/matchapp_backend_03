@@ -5,6 +5,7 @@ import com.company.mathapp_backend_03.entity.Subject;
 import com.company.mathapp_backend_03.entity.User;
 import com.company.mathapp_backend_03.exception.BadRequestException;
 import com.company.mathapp_backend_03.model.dto.SubjectOverviewDTO;
+import com.company.mathapp_backend_03.model.dto.SubjectProgressDTO;
 import com.company.mathapp_backend_03.model.request.SubjectRequest;
 import com.company.mathapp_backend_03.model.response.SubjectResponse;
 import com.company.mathapp_backend_03.repository.ChapterRepository;
@@ -44,6 +45,10 @@ public class SubjectService {
                         s.getIcon()
                 ))
                 .toList();
+    }
+
+    public List<SubjectProgressDTO> getSubjectProgress(Integer userId) {
+        return subjectRepository.getSubjectProgress(userId);
     }
 
     public void addSubject(SubjectRequest subjectRequest) {

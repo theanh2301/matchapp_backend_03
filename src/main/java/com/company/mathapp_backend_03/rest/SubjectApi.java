@@ -1,6 +1,7 @@
 package com.company.mathapp_backend_03.rest;
 
 import com.company.mathapp_backend_03.model.dto.SubjectOverviewDTO;
+import com.company.mathapp_backend_03.model.dto.SubjectProgressDTO;
 import com.company.mathapp_backend_03.model.request.SubjectRequest;
 import com.company.mathapp_backend_03.model.response.ApiResponse;
 import com.company.mathapp_backend_03.model.response.SubjectResponse;
@@ -23,6 +24,11 @@ public class SubjectApi {
     @GetMapping
     public List<SubjectResponse> getSubjects() {
         return subjectService.getAllSubjects();
+    }
+
+    @GetMapping("/progress")
+    public List<SubjectProgressDTO> getProgress(@RequestParam Integer userId) {
+        return subjectService.getSubjectProgress(userId);
     }
 
     @GetMapping("/overview")
