@@ -27,5 +27,6 @@ public class UserStat {
     Integer totalXP;
     Integer totalLesson;
     Integer streakDay;
+    Integer totalStudyDay;
     LocalDateTime lastStudyDate;
 }

@@ -16,6 +16,7 @@ public class UserStatResponse {
     Integer userId;
     Integer totalXP;
     Integer totalLesson;
+    Integer totalStudyDay;
     Integer streakDay;
     LocalDateTime lastDayStudy;
 }
